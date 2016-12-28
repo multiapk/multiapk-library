@@ -94,8 +94,9 @@ public class BundleManager {
         LogUtil.e(TAG, "checkStatus: start :check is need reCopyInstall bundles");
         LogUtil.e(TAG, ">>>>-------------------------------------------------------------->>>>");
         final long startTime = System.currentTimeMillis();
-        if (!TextUtils.equals(getCurrentBundleKey(application), getLastBundleKey(application))) {
-            LogUtil.d(TAG, "checkStatus: currentBundleKey != lastBundleKey , clean local and reCopyInstall bundles");
+        boolean isLocalBundlesValid = isLocalBundlesValid();
+        if (!TextUtils.equals(getCurrentBundleKey(application), getLastBundleKey(application)) || !isLocalBundlesValid) {
+            LogUtil.d(TAG, "checkStatus: currentBundleKey != lastBundleKey , clean local and reCopyInstall bundles, isLocalBundlesValid==" + isLocalBundlesValid);
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -109,13 +110,20 @@ public class BundleManager {
                 }
             }).start();
         } else {
-            LogUtil.d(TAG, "checkStatus: currentBundleKey == lastBundleKey , restore from local hotfix and bundles");
+            LogUtil.d(TAG, "checkStatus: currentBundleKey == lastBundleKey , restore from local hotfix and bundles, isLocalBundlesValid==" + isLocalBundlesValid);
             restoreFromProfile();
             HotPatchManager.getInstance().installHotFixDexs();
             installBundleDexs();
             LogUtil.e(TAG, "checkStatus: end : 耗时: " + (System.currentTimeMillis() - startTime) + "ms");
             LogUtil.e(TAG, "<<<<--------------------------------------------------------------<<<<");
         }
+    }
+
+    private boolean isLocalBundlesValid() {
+        //校验local所有数据正确性，如果不正确 cleanLocal，重新 copyToLocal
+        //验证meta是否存在
+        //验证bundles md5，最好在md5正确的bundle.zip里重新释放bundle.dex,确保万无一失，防止被恶意修改
+        return true;
     }
 
     public void cleanLocal() {
@@ -271,7 +279,7 @@ public class BundleManager {
     }
 
     private int restoreFromProfile() {
-        LogUtil.d(TAG, "restoreFromProfile start");
+        LogUtil.w(TAG, "restoreFromProfile start");
         try {
             File file = new File(storageLocation, "meta");
             if (file.exists()) {
@@ -286,20 +294,20 @@ public class BundleManager {
                         try {
                             Bundle bundle = new Bundle(listFiles[i]);
                             bundles.put(bundle.getLocation(), bundle);
-                            LogUtil.w(TAG, "success to restore bundle: " + bundle.getLocation());
+                            LogUtil.v(TAG, "success to restore bundle: " + bundle.getLocation());
                         } catch (Exception e) {
                             LogUtil.e(TAG, e.getMessage(), e.getCause());
                         }
                     }
                     i++;
                 }
-                LogUtil.d(TAG, "restoreFromProfile end , return 1(成功)");
+                LogUtil.w(TAG, "restoreFromProfile end , return 1(成功)");
                 return 1;
             }
-            LogUtil.d(TAG, "restoreFromProfile end , return -1(meta不存在)");
+            LogUtil.w(TAG, "restoreFromProfile end , return -1(meta不存在)");
             return -1;
         } catch (Exception e) {
-            LogUtil.d(TAG, "restoreFromProfile end , return 0(异常)", e);
+            LogUtil.e(TAG, "restoreFromProfile end , return 0(异常)", e);
             return 0;
         }
     }

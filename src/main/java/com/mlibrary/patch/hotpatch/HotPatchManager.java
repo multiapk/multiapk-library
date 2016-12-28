@@ -47,6 +47,7 @@ public class HotPatchManager {
 
     public void installHotFixDexs() {
         LogUtil.w(TAG, "installHotFixDexs start");
+        long startTime = System.currentTimeMillis();
         try {
             initHotPatches();
             if (!sortedMap.isEmpty()) {
@@ -64,7 +65,7 @@ public class HotPatchManager {
         } catch (Throwable e) {
             LogUtil.e(TAG, "installHotFixDexs failure !", e);
         }
-        LogUtil.w(TAG, "installHotFixDexs end");
+        LogUtil.w(TAG, "installHotFixDexs：end 总耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");
     }
 
     /**
