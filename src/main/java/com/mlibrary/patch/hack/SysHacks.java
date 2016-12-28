@@ -13,8 +13,8 @@ import android.view.ContextThemeWrapper;
 import com.mlibrary.patch.hack.Hack.HackedClass;
 import com.mlibrary.patch.hack.Hack.HackedField;
 import com.mlibrary.patch.hack.Hack.HackedMethod;
-import com.mlibrary.patch.log.Logger;
-import com.mlibrary.patch.log.LoggerFactory;
+import com.mlibrary.patch.util.LogUtil;
+import com.mlibrary.patch.util.MLibraryPatchUtil;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -24,7 +24,7 @@ import java.util.Map;
  * Hack 系统的功能：包括类加载机制，资源加载，Context等
  */
 public class SysHacks extends Hack.HackDeclaration implements Hack.AssertionFailureHandler {
-    static final Logger log;
+    public static final String TAG = MLibraryPatchUtil.TAG + ":SysHacks";
     public static HackedClass<Object> ActivityThread;
     public static HackedMethod ActivityThread_currentActivityThread;
     public static HackedField<Object, ArrayList<android.app.Application>> ActivityThread_mAllApplications;
@@ -61,7 +61,6 @@ public class SysHacks extends Hack.HackDeclaration implements Hack.AssertionFail
     public static boolean sIsReflectChecked;
 
     static {
-        log = LoggerFactory.getLogcatLogger("SysHacks");
         sIsReflectAvailable = false;
         sIsReflectChecked = false;
         sIsIgnoreFailure = false;
@@ -97,7 +96,7 @@ public class SysHacks extends Hack.HackDeclaration implements Hack.AssertionFail
             return true;
         } catch (Throwable e) {
             sIsReflectAvailable = false;
-            log.log("HackAssertionException", Logger.LogLevel.ERROR, e);
+            LogUtil.e(TAG, "HackAssertionException", e);
             throw new AssertionArrayException("defineAndVerify HackAssertionException");
         } finally {
             Hack.setAssertionFailureHandler(null);
@@ -158,7 +157,7 @@ public class SysHacks extends Hack.HackDeclaration implements Hack.AssertionFail
                 ContextThemeWrapper_mResources.ofType(Resources.class);
             }
         } catch (NoSuchFieldException e) {
-            log.log("Not found ContextThemeWrapper.mResources on VERSION " + Build.VERSION.SDK_INT, Logger.LogLevel.WARN);
+            LogUtil.w(TAG, "Not found ContextThemeWrapper.mResources on VERSION \" + Build.VERSION.SDK_INT", e);
         }
         ContextWrapper_mBase = ContextWrapper.field("mBase");
         ContextWrapper_mBase.ofType(Context.class);

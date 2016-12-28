@@ -7,25 +7,22 @@ import android.content.res.Resources;
 import android.util.DisplayMetrics;
 
 import com.mlibrary.patch.framework.Bundle;
-import com.mlibrary.patch.framework.BundleImpl;
-import com.mlibrary.patch.framework.Framework;
+import com.mlibrary.patch.framework.BundleCore;
 import com.mlibrary.patch.hack.AndroidHack;
 import com.mlibrary.patch.hack.SysHacks;
-import com.mlibrary.patch.log.Logger;
-import com.mlibrary.patch.log.LoggerFactory;
+import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.util.MLibraryPatchUtil;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * Created by yb.wang on 15/1/5.
  * 挂载载系统资源中，处理框架资源加载
  */
 public class DelegateResources extends Resources {
-    private static final Logger log = LoggerFactory.getLogcatLogger(MLibraryPatchUtil.TAG + ":DelegateResources");
+    public static final String TAG = MLibraryPatchUtil.TAG + ":DelegateResources";
 
     @SuppressWarnings("deprecation")
     private DelegateResources(AssetManager assets, Resources resources) {
@@ -33,13 +30,13 @@ public class DelegateResources extends Resources {
     }
 
     public static void newDelegateResources(Application application, Resources resources) throws Exception {
-        List<Bundle> bundles = Framework.getBundles();
+        List<Bundle> bundles = BundleCore.getInstance().getBundles();
         if (bundles != null && !bundles.isEmpty()) {
             Resources delegateResources;
             List<String> arrayList = new ArrayList<>();
             arrayList.add(application.getApplicationInfo().sourceDir);
             for (Bundle bundle : bundles)
-                arrayList.add(((BundleImpl) bundle).getArchive().getArchiveFile().getAbsolutePath());
+                arrayList.add((bundle).getArchive().getArchiveFile().getAbsolutePath());
             AssetManager assetManager = AssetManager.class.newInstance();
             for (String str : arrayList)
                 SysHacks.AssetManager_addAssetPath.invoke(assetManager, str);
@@ -61,7 +58,7 @@ public class DelegateResources extends Resources {
                 stringBuffer.append(arrayList.get(i));
             }
             stringBuffer.append("]");
-            log.log(stringBuffer.toString(), Logger.LogLevel.DEBUG);
+            LogUtil.d(TAG, stringBuffer.toString());
         }
     }
 }

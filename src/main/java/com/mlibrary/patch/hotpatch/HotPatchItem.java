@@ -1,10 +1,9 @@
 package com.mlibrary.patch.hotpatch;
 
 import com.mlibrary.patch.loader.BundlePathLoader;
-import com.mlibrary.patch.log.Logger;
-import com.mlibrary.patch.log.LoggerFactory;
 import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
+import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.util.MLibraryPatchUtil;
 
 import java.io.File;
@@ -17,7 +16,7 @@ import java.util.zip.ZipFile;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class HotPatchItem {
-    private static final Logger log = LoggerFactory.getLogcatLogger(MLibraryPatchUtil.TAG + ":HotPatchItem");
+    public static final String TAG = MLibraryPatchUtil.TAG + ":HotPatchItem";
     private static final String HOTPATCH_FILE_NAME = "hotfix.zip";
 
     private File hotFixFile;
@@ -56,12 +55,12 @@ class HotPatchItem {
                 zipFile.close();
                 return true;
             } catch (IOException e) {
-                log.log("Failed to close zip file: " + file.getAbsolutePath(), Logger.LogLevel.ERROR, e);
+                LogUtil.e(TAG, "Failed to close zip file: " + file.getAbsolutePath(), e);
             }
         } catch (ZipException ex) {
-            log.log("File " + file.getAbsolutePath() + " is not a valid zip file.", Logger.LogLevel.ERROR, ex);
+            LogUtil.e(TAG, "File " + file.getAbsolutePath() + " is not a valid zip file.", ex);
         } catch (IOException ex) {
-            log.log("Got an IOException trying to open zip file: " + file.getAbsolutePath(), Logger.LogLevel.ERROR, ex);
+            LogUtil.e(TAG, "Got an IOException trying to open zip file: " + file.getAbsolutePath(), ex);
         }
         return false;
     }

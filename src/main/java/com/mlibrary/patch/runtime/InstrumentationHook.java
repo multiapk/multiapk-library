@@ -20,8 +20,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 
 import com.mlibrary.patch.hack.SysHacks;
-import com.mlibrary.patch.log.Logger;
-import com.mlibrary.patch.log.LoggerFactory;
+import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.util.MLibraryPatchUtil;
 
 import java.util.List;
@@ -33,11 +32,7 @@ import java.util.List;
  */
 @SuppressWarnings("unused")
 public class InstrumentationHook extends Instrumentation {
-    static final Logger log;
-
-    static {
-        log = LoggerFactory.getLogcatLogger("InstrumentationHook");
-    }
+    public static final String TAG = MLibraryPatchUtil.TAG + ":InstrumentationHook";
 
     private Context context;
     private Instrumentation mBase;
@@ -58,8 +53,6 @@ public class InstrumentationHook extends Instrumentation {
                     ex.printStackTrace();
                     return null;
                 }
-
-
             }
         });
     }
@@ -161,8 +154,8 @@ public class InstrumentationHook extends Instrumentation {
                         intent.setClassName(this.context, str);
                     }
                 }
-                log.log("Could not find activity class: " + str, Logger.LogLevel.WARN);
-                log.log("Redirect to welcome activity: " + MLibraryPatchUtil.defaultActivityWhileClassNotFound, Logger.LogLevel.WARN);
+                LogUtil.w(TAG, "Could not find activity class: " + str);
+                LogUtil.w(TAG, "Redirect to welcome activity: " + MLibraryPatchUtil.defaultActivityWhileClassNotFound);
                 newActivity = this.mBase.newActivity(classLoader, MLibraryPatchUtil.defaultActivityWhileClassNotFound, intent);
             }
         }

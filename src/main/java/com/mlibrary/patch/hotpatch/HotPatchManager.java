@@ -2,10 +2,9 @@ package com.mlibrary.patch.hotpatch;
 
 import android.text.TextUtils;
 
-import com.mlibrary.patch.log.Logger;
-import com.mlibrary.patch.log.LoggerFactory;
 import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
+import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.util.MLibraryPatchUtil;
 
 import java.io.File;
@@ -18,7 +17,7 @@ import java.util.TreeMap;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class HotPatchManager {
-    private static final Logger log = LoggerFactory.getLogcatLogger(MLibraryPatchUtil.TAG + ":HotPatchItem");
+    public static final String TAG = MLibraryPatchUtil.TAG + ":HotPatchItem";
     private static volatile HotPatchManager instance;
     private static SortedMap<Integer, HotPatchItem> sortedMap;
 
@@ -65,7 +64,7 @@ public class HotPatchManager {
                 }
             }
         } catch (Throwable e) {
-            log.log("Failed to run pacth", Logger.LogLevel.ERROR, e);
+            LogUtil.e(TAG, "Failed to run pacth", e);
         }
     }
 
@@ -105,10 +104,9 @@ public class HotPatchManager {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            log.log("installHotPatch error", Logger.LogLevel.ERROR, e);
+            LogUtil.e(TAG, "installHotPatch error", e);
             ret = false;
         }
-
         return ret;
     }
 

@@ -1,39 +1,41 @@
 package com.mlibrary.patch.framework;
 
 import android.app.Application;
-import android.content.res.Resources;
+import android.os.Build;
+import android.os.Environment;
 
 import com.mlibrary.patch.hack.AndroidHack;
 import com.mlibrary.patch.hack.SysHacks;
-import com.mlibrary.patch.log.Logger;
-import com.mlibrary.patch.log.LoggerFactory;
-import com.mlibrary.patch.runtime.BundleInstalledListener;
 import com.mlibrary.patch.runtime.DelegateResources;
 import com.mlibrary.patch.runtime.InstrumentationHook;
 import com.mlibrary.patch.runtime.RuntimeArgs;
+import com.mlibrary.patch.util.FileUtil;
+import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.util.MLibraryPatchUtil;
+import com.mlibrary.patch.util.SdCardUtil;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
-import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Created by yb.wang on 15/1/5.
- * Bundle机制外部核心类
- * 采用单例模式封装了外部调用方法
- */
 public class BundleCore {
     public static final String LIB_PATH = "assets/baseres/";
-    private static final Logger log = LoggerFactory.getLogcatLogger(MLibraryPatchUtil.TAG + ":BundleCore");
+    public static final String TAG = MLibraryPatchUtil.TAG + ":BundleCore";
+
+    private final Map<String, Bundle> bundles = new ConcurrentHashMap<>();
+    private String storageLocation;
+    private long nextBundleID = 1;
+
     private static BundleCore instance;
-    private List<BundleInstalledListener> bundleDelayListeners;
-    private List<BundleInstalledListener> bundleSyncListeners;
 
     private BundleCore() {
-        bundleDelayListeners = new ArrayList<>();
-        bundleSyncListeners = new ArrayList<>();
     }
 
     public static synchronized BundleCore getInstance() {
@@ -42,128 +44,174 @@ public class BundleCore {
         return instance;
     }
 
-    public void configLogger(boolean isOpenLog, Logger.LogLevel minLevel) {
-        LoggerFactory.isNeedLog = isOpenLog;
-        LoggerFactory.minLevel = minLevel;
-    }
-
-    public void configLogger(boolean isOpenLog, int level) {
-        LoggerFactory.isNeedLog = isOpenLog;
-        LoggerFactory.minLevel = Logger.LogLevel.getValue(level);
-    }
-
-    public void init(Application application) throws Exception {
+    public void init(Application application, boolean isOpenLog) throws Exception {
+        LogUtil.setDebugAble(isOpenLog);
         SysHacks.defineAndVerify();
         RuntimeArgs.androidApplication = application;
         RuntimeArgs.delegateResources = application.getResources();
         AndroidHack.injectInstrumentationHook(new InstrumentationHook(AndroidHack.getInstrumentation(), application.getBaseContext()));
     }
 
-    public void startup(boolean needReInitBundle) {
-        try {
-            Framework.startup(needReInitBundle);
-        } catch (Exception e) {
-            log.log("Bundle Dex installation failure", Logger.LogLevel.ERROR, e);
-            //throw new RuntimeException("Bundle dex installation failed (" + e.getMessage() + ").");
-        }
-    }
-
     public void run() {
-        try {
-            for (Bundle bundle : BundleCore.getInstance().getBundles()) {
-                BundleImpl bundleImpl = (BundleImpl) bundle;
-                try {
-                    bundleImpl.optDexFile();
-                } catch (Exception e) {
-                    log.log("Error while dexopt >>>", Logger.LogLevel.ERROR, e);
-                }
+        for (Bundle bundle : getBundles()) {
+            try {
+                bundle.optDexFile();
+            } catch (Exception e) {
+                LogUtil.e(TAG, "optDexFile exception", e);
             }
-            notifySyncBundleListeners();
+        }
+        try {
             DelegateResources.newDelegateResources(RuntimeArgs.androidApplication, RuntimeArgs.delegateResources);
         } catch (Exception e) {
-            log.e("Bundle Dex installation failure", e);
-            //throw new RuntimeException("Bundle dex installation failed (" + e.getMessage() + ").");
+            LogUtil.e(TAG, "DelegateResources.newDelegateResources exception", e);
         }
-        //System.setProperty("BUNDLES_INSTALLED", "true");
     }
 
-    private void notifyDelayBundleListeners() {
-        if (!bundleDelayListeners.isEmpty())
-            for (BundleInstalledListener bundleInstalledListener : bundleDelayListeners)
-                bundleInstalledListener.onBundleInstalled();
+    public Bundle installBundle(String location, InputStream inputStream) throws Exception {
+        return installNewBundle(location, inputStream);
     }
 
-    private void notifySyncBundleListeners() {
-        if (!bundleSyncListeners.isEmpty())
-            for (BundleInstalledListener bundleInstalledListener : bundleSyncListeners)
-                bundleInstalledListener.onBundleInstalled();
-    }
-
-    public Bundle getBundle(String bundleName) {
-        return Framework.getBundle(bundleName);
-    }
-
-    public Bundle installBundle(String location, InputStream inputStream) throws BundleException {
-        return Framework.installNewBundle(location, inputStream);
-    }
-
-    public void updateBundle(String location, InputStream inputStream) throws BundleException {
-        Bundle bundle = Framework.getBundle(location);
+    public void updateBundle(String location, InputStream inputStream) throws Exception {
+        Bundle bundle = getBundle(location);
         if (bundle != null) {
             bundle.update(inputStream);
             return;
         }
-        throw new BundleException("Could not update bundle " + location + ", because could not find it");
+        throw new IllegalStateException("Could not update bundle " + location + ", because could not find it");
     }
 
-    public void uninstallBundle(String location) throws BundleException {
-        Bundle bundle = Framework.getBundle(location);
-        if (bundle != null) {
-            BundleImpl bundleImpl = (BundleImpl) bundle;
-            try {
-                bundleImpl.getArchive().purge();
-            } catch (Exception e) {
-                log.log("uninstall bundle error: " + location + e.getMessage(), Logger.LogLevel.ERROR);
-            }
+    public void uninstallBundle(String location) throws Exception {
+        Bundle bundle = getBundle(location);
+        if (bundle != null)
+            bundle.getArchive().purge();
+    }
+
+
+    public void startup(boolean needReInitBundle) {
+        LogUtil.e(TAG, "*------------------------------------*");
+        //noinspection deprecation
+        LogUtil.e(TAG, " Ctrip Bundle on " + Build.MODEL + "|starting...");
+        LogUtil.e(TAG, "*------------------------------------*");
+
+        long currentTimeMillis = System.currentTimeMillis();
+        String baseDir = null;
+        //String baseDir = RuntimeArgs.androidApplication.getFilesDir().getAbsolutePath();
+        LogUtil.w(TAG, "storageLocation:SdCard exists?" + SdCardUtil.isSdCardExist());
+        File externalFile = RuntimeArgs.androidApplication.getExternalFilesDir(null);
+        if (externalFile != null) {
+            baseDir = externalFile.getAbsolutePath();
+            LogUtil.w(TAG, "storageLocation:externalFile!=null:baseDir" + baseDir);
         }
+        LogUtil.w(TAG, "storageLocation:sfcard cache dir" + RuntimeArgs.androidApplication.getExternalCacheDir());
+        if (baseDir == null) {
+            baseDir = RuntimeArgs.androidApplication.getFilesDir().getAbsolutePath();
+            LogUtil.w(TAG, "storageLocation:baseDir==null:baseDir" + baseDir);
+            baseDir = new File(Environment.getExternalStorageDirectory(), "files").getAbsolutePath();
+            LogUtil.w(TAG, "storageLocation:baseDir==null:baseDir" + baseDir);
+        }
+        storageLocation = baseDir + File.separatorChar + "storage" + File.separatorChar;
+        LogUtil.w(TAG, "storageLocation:" + storageLocation);
+        if (needReInitBundle) {
+            LogUtil.w(TAG, "重新初始化,即将删除:" + storageLocation);
+            File file = new File(storageLocation);
+            if (file.exists())
+                FileUtil.deleteDirectory(file);
+            //noinspection ResultOfMethodCallIgnored
+            file.mkdirs();
+            saveToProfile();
+        } else {
+            restoreFromProfile();
+        }
+        LogUtil.e(TAG, "*------------------------------------*");
+        LogUtil.e(TAG, " Framework " + (needReInitBundle ? "restarted" : "start") + " in " + (System.currentTimeMillis() - currentTimeMillis) + " ms");
+        LogUtil.e(TAG, "*------------------------------------*");
     }
 
     public List<Bundle> getBundles() {
-        return Framework.getBundles();
+        List<Bundle> arrayList = new ArrayList<>(bundles.size());
+        synchronized (bundles) {
+            arrayList.addAll(bundles.values());
+        }
+        return arrayList;
     }
 
-    public Resources getDelegateResources() {
-        return RuntimeArgs.delegateResources;
+    public Bundle getBundle(String str) {
+        return bundles.get(str);
     }
 
-    public File getBundleFile(String location) {
-        Bundle bundle = Framework.getBundle(location);
-        return bundle != null ? ((BundleImpl) bundle).archive.getArchiveFile() : null;
+    public Bundle getBundle(long id) {
+        synchronized (bundles) {
+            for (Bundle bundle : bundles.values())
+                if (bundle.getBundleId() == id)
+                    return bundle;
+            return null;
+        }
     }
 
-    public InputStream openAssetInputStream(String location, String fileName) throws IOException {
-        Bundle bundle = Framework.getBundle(location);
-        return bundle != null ? ((BundleImpl) bundle).archive.openAssetInputStream(fileName) : null;
+    private void saveToProfile() {
+        LogUtil.i(TAG, "saveToProfile");
+        //noinspection SuspiciousToArrayCall
+        Bundle[] bundleArray = getBundles().toArray(new Bundle[bundles.size()]);
+        for (Bundle bundle : bundleArray)
+            bundle.updateMetadata();
+        saveToMetadata();
     }
 
-    public InputStream openNonAssetInputStream(String location, String str2) throws IOException {
-        Bundle bundle = Framework.getBundle(location);
-        return bundle != null ? ((BundleImpl) bundle).archive.openNonAssetInputStream(str2) : null;
+    private void saveToMetadata() {
+        LogUtil.i(TAG, "saveToMetadata:" + storageLocation + "/meta" + "  writeLong(nextBundleID):" + nextBundleID);
+        try {
+            DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(new File(storageLocation, "meta")));
+            dataOutputStream.writeLong(nextBundleID);
+            dataOutputStream.flush();
+            dataOutputStream.close();
+        } catch (Throwable e) {
+            LogUtil.e(TAG, "Could not save meta data.", e);
+        }
     }
 
-    public void addBundleDelayListener(BundleInstalledListener bundleListener) {
-        bundleDelayListeners.add(bundleListener);
+    private int restoreFromProfile() {
+        LogUtil.i(TAG, "restoreFromProfile");
+        try {
+            File file = new File(storageLocation, "meta");
+            if (file.exists()) {
+                DataInputStream dataInputStream = new DataInputStream(new FileInputStream(file));
+                nextBundleID = dataInputStream.readLong();
+                dataInputStream.close();
+                File file2 = new File(storageLocation);
+                File[] listFiles = file2.listFiles();
+                int i = 0;
+                while (i < listFiles.length) {
+                    if (listFiles[i].isDirectory() && new File(listFiles[i], "meta").exists()) {
+                        try {
+                            Bundle bundle = new Bundle(listFiles[i]);
+                            bundles.put(bundle.getLocation(), bundle);
+                            LogUtil.e(TAG, "RESTORED BUNDLE " + bundle.getLocation());
+                        } catch (Exception e) {
+                            LogUtil.e(TAG, e.getMessage(), e.getCause());
+                        }
+                    }
+                    i++;
+                }
+                return 1;
+            }
+            LogUtil.e(TAG, "Profile not found, performing clean start ...");
+            return -1;
+        } catch (Exception e2) {
+            e2.printStackTrace();
+            return 0;
+        }
     }
 
-    public void removeBundleDelayListener(BundleInstalledListener bundleListener) {
-        bundleDelayListeners.remove(bundleListener);
-    }
-
-    public void addBundleSyncListener(BundleInstalledListener bundleListener) {
-        bundleSyncListeners.add(bundleListener);
-    }
-
-    public void removeBundleSyncListener(BundleInstalledListener bundleListener) {
-        bundleSyncListeners.remove(bundleListener);
+    public Bundle installNewBundle(String location, InputStream inputStream) throws Exception {
+        LogUtil.d(TAG, "installNewBundle: " + location);
+        Bundle bundle = getBundle(location);
+        if (bundle != null)
+            return bundle;
+        long bundleID = nextBundleID;
+        nextBundleID = 1 + bundleID;
+        bundle = new Bundle(new File(storageLocation, String.valueOf(bundleID)), location, bundleID, inputStream);
+        bundles.put(bundle.getLocation(), bundle);
+        saveToMetadata();
+        return bundle;
     }
 }

@@ -13,19 +13,17 @@ import static com.mlibrary.patch.hack.Interception.proxy;
  * Created by yb.wang on 14/12/31.
  * Hack--反射机制反射后包装的形式：类，方法，字段
  */
-@SuppressWarnings("unused")
+@SuppressWarnings("unchecked")
 public class Hack {
     private static AssertionFailureHandler sFailureHandler;
 
     private Hack() {
     }
 
-    @SuppressWarnings("unchecked")
     public static <T> HackedClass<T> into(Class<T> cls) {
         return new HackedClass(cls);
     }
 
-    @SuppressWarnings("unchecked")
     public static <T> HackedClass<T> into(String str) throws HackDeclaration.HackAssertionException {
         try {
             return new HackedClass(Class.forName(str));
@@ -50,7 +48,6 @@ public class Hack {
 
     public static abstract class HackDeclaration {
 
-        @SuppressWarnings("unused")
         public static class HackAssertionException extends Throwable {
             private static final long serialVersionUID = 1;
             private Class<?> mHackedClass;
@@ -95,7 +92,6 @@ public class Hack {
         }
     }
 
-    @SuppressWarnings("unused")
     public static class HackedClass<C> {
         final Class<C> clazz;
 
@@ -205,7 +201,7 @@ public class Hack {
             return ofType;
         }
 
-        @SuppressWarnings("unchecked")
+
         public T get(C c) {
             try {
                 return (T) this.mField.get(c);
@@ -223,7 +219,7 @@ public class Hack {
             }
         }
 
-        @SuppressWarnings("unchecked")
+
         public void hijack(C c, Interception.InterceptionHandler<?> interceptionHandler) {
             T obj = get(c);
             if (obj == null)
@@ -236,7 +232,6 @@ public class Hack {
         }
     }
 
-    @SuppressWarnings("unused")
     public static class HackedMethod {
         final Method mMethod;
 
