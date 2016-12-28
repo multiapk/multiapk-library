@@ -13,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class Bundle {
     public static final String TAG = MDynamicLib.TAG + ":Bundle";
 
@@ -20,12 +21,11 @@ public class Bundle {
     private final String location;
     private final long bundleID;
     private BundleArchive archive;
-    //是否dex优化
-    private volatile boolean isOptimized;
+    private volatile boolean isBundleDexInstalled;
 
     Bundle(File bundleDir) throws Exception {
         this.bundleDir = bundleDir;
-        this.isOptimized = false;
+        this.isBundleDexInstalled = false;
         DataInputStream dataInputStream = new DataInputStream(new FileInputStream(new File(bundleDir, "meta")));
         this.bundleID = dataInputStream.readLong();
         this.location = dataInputStream.readUTF();
@@ -35,7 +35,7 @@ public class Bundle {
 
     Bundle(File bundleDir, String location, long bundleID, InputStream inputStream) throws Exception {
         this.bundleDir = bundleDir;
-        this.isOptimized = false;
+        this.isBundleDexInstalled = false;
         this.bundleID = bundleID;
         this.location = location;
         if (inputStream == null) {
@@ -45,15 +45,14 @@ public class Bundle {
                 this.archive = new BundleArchive(bundleDir, inputStream);
             } catch (Exception e) {
                 FileUtil.deleteDirectory(bundleDir);
-                throw new IOException("Can not install bundle " + location, e);
+                throw new IOException("can not install bundle " + location, e);
             }
         }
         this.updateMetadata();
     }
 
-    @SuppressWarnings("unused")
-    public boolean isOptimized() {
-        return this.isOptimized;
+    public boolean isBundleDexInstalled() {
+        return this.isBundleDexInstalled;
     }
 
     public BundleArchive getArchive() {
@@ -73,16 +72,16 @@ public class Bundle {
     }
 
     synchronized void installBundleDexs() throws Exception {
-        if (!isOptimized) {
+        if (!isBundleDexInstalled) {
             long startTime = System.currentTimeMillis();
             getArchive().installBundleDex();
-            isOptimized = true;
-            LogUtil.d(TAG, "installBundleDex：" + getLocation() + ", 耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");
+            isBundleDexInstalled = true;
+            LogUtil.v(TAG, "installBundleDex：" + getLocation() + ", 耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");
         }
     }
 
     public synchronized void purge() throws Exception {
-        getArchive().purge();
+        getArchive().clean();
     }
 
     void updateMetadata() {
@@ -90,7 +89,6 @@ public class Bundle {
         DataOutputStream dataOutputStream;
         try {
             if (!file.getParentFile().exists())
-                //noinspection ResultOfMethodCallIgnored
                 file.getParentFile().mkdirs();
             FileOutputStream fileOutputStream = new FileOutputStream(file);
             dataOutputStream = new DataOutputStream(fileOutputStream);
@@ -104,11 +102,11 @@ public class Bundle {
                 ex.printStackTrace();
             }
         } catch (Throwable e) {
-            LogUtil.e(TAG, "Could not save meta data " + file.getAbsolutePath(), e);
+            LogUtil.e(TAG, "could not save meta data " + file.getAbsolutePath(), e);
         }
     }
 
     public String toString() {
-        return "Bundle [" + this.bundleID + "]: " + this.location;
+        return "\nbundle [bundleID==" + this.bundleID + "]: " + this.location;
     }
 }

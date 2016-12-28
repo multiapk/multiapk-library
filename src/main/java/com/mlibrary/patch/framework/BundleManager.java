@@ -21,7 +21,6 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -31,16 +30,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class BundleManager {
-    public static final String TAG = MDynamicLib.TAG + ":BundleManager";
-
-    public static final String LIB_PATH = "assets/baseres/";
+    private static final String TAG = MDynamicLib.TAG + ":BundleManager";
+    private static final String BUNDLE_LIB_PATH = "assets/baseres/";
+    private static final String BUNDLE_SUFFIX = ".so";
 
     private final Map<String, Bundle> bundles = new ConcurrentHashMap<>();
     private String storageLocation;
     private long nextBundleID = 1;
 
-    private static BundleManager instance;
+    private static BundleManager instance = null;
 
     private BundleManager() {
     }
@@ -56,9 +56,10 @@ public class BundleManager {
     }
 
     public void init(Application application, boolean isOpenLog) {
+        long startTime = System.currentTimeMillis();
         LogUtil.setDebugAble(isOpenLog);
         LogUtil.w(TAG, "======================================================================");
-        LogUtil.w(TAG, "******** init start **************************************************");
+        LogUtil.w(TAG, "******** mdynamiclib init start **************************************");
         LogUtil.w(TAG, "======================================================================");
         try {
             SysHacks.defineAndVerify();
@@ -84,21 +85,27 @@ public class BundleManager {
             e.printStackTrace();
         } finally {
             LogUtil.w(TAG, "======================================================================");
-            LogUtil.w(TAG, "******** init end ****************************************************");
+            LogUtil.w(TAG, "******** mdynamiclib init end [耗时: " + (System.currentTimeMillis() - startTime) + "ms]");
             LogUtil.w(TAG, "======================================================================");
         }
     }
 
     private void checkStatus(final Application application) {
+        LogUtil.e(TAG, "checkStatus: start :check is need reCopyInstall bundles");
+        LogUtil.e(TAG, ">>>>-------------------------------------------------------------->>>>");
+        final long startTime = System.currentTimeMillis();
         if (!TextUtils.equals(getCurrentBundleKey(application), getLastBundleKey(application))) {
             LogUtil.d(TAG, "checkStatus: currentBundleKey != lastBundleKey , clean local and reCopyInstall bundles");
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    HotPatchManager.getInstance().purge();
+                    LogUtil.w(TAG, "checkStatus: start new thread to reCopyInstall bundles");
+                    HotPatchManager.getInstance().clean();
                     cleanLocal();
                     copyBundles(application);
                     installBundleDexs();
+                    LogUtil.e(TAG, "checkStatus: end : 耗时: " + (System.currentTimeMillis() - startTime) + "ms");
+                    LogUtil.e(TAG, "<<<<--------------------------------------------------------------<<<<");
                 }
             }).start();
         } else {
@@ -106,6 +113,8 @@ public class BundleManager {
             restoreFromProfile();
             HotPatchManager.getInstance().installHotFixDexs();
             installBundleDexs();
+            LogUtil.e(TAG, "checkStatus: end : 耗时: " + (System.currentTimeMillis() - startTime) + "ms");
+            LogUtil.e(TAG, "<<<<--------------------------------------------------------------<<<<");
         }
     }
 
@@ -114,7 +123,6 @@ public class BundleManager {
         File file = new File(storageLocation);
         if (file.exists())
             FileUtil.deleteDirectory(file);
-        //noinspection ResultOfMethodCallIgnored
         file.mkdirs();
         saveToProfile();
     }
@@ -137,80 +145,70 @@ public class BundleManager {
         LogUtil.w(TAG, "installBundleDexs：end 总耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");
     }
 
-    public List<String> getBundleList(ZipFile zipFile, String str, String str2) {
+    public List<String> getBundleList(ZipFile zipFile, String prefix, String suffix) {
         List<String> arrayList = new ArrayList<>();
         Enumeration entries = zipFile.entries();
         while (entries.hasMoreElements()) {
             String name = ((ZipEntry) entries.nextElement()).getName();
-            if (name.startsWith(str) && name.endsWith(str2))
+            if (!TextUtils.isEmpty(name) && name.startsWith(prefix) && name.endsWith(suffix))
                 arrayList.add(name);
         }
         return arrayList;
     }
 
-    private static final String KEY_LAST_BUNDLE = "KEY_LAST_BUNDLE";
-
-    private static void saveBundleKey(Application application, String bundleKey) {
-        LogUtil.w(TAG, "saveBundleKey:" + bundleKey);
-        PreferencesUtil.getInstance(application).putString(KEY_LAST_BUNDLE, bundleKey);
-    }
-
-    public String getLastBundleKey(Application application) {
-        return PreferencesUtil.getInstance(application).getString(KEY_LAST_BUNDLE);
-    }
-
     public void copyBundles(Application application) {
-        LogUtil.w(TAG, "copyBundles:start");
+        LogUtil.w(TAG, "copyBundles:start:allBundles:\n" + getInstance().getBundles().toString());
+        long startTime = System.currentTimeMillis();
+        ZipFile zipFile = null;
         try {
-            ZipFile zipFile = new ZipFile(application.getApplicationInfo().sourceDir);
-            List<String> bundleFiles = getInstance().getBundleList(zipFile, LIB_PATH, ".so");
-            if (bundleFiles.size() > 0) {
-                getInstance().copyToLocal(zipFile, bundleFiles);
-                saveBundleKey(application, getInstance().getCurrentBundleKey(application));
-            } else {
-                LogUtil.e(TAG, LIB_PATH + " 下没有发现任何 bundle");
-            }
-            try {
-                zipFile.close();
-            } catch (IOException exception) {
-                exception.printStackTrace();
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        LogUtil.w(TAG, "copyBundles:end");
-    }
-
-    public void copyToLocal(ZipFile zipFile, List<String> bundleList) {
-        LogUtil.d(TAG, "copyToLocal:allBundles:" + getInstance().getBundles().toString());
-        for (String bundleItem : bundleList) {
-            String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(LIB_PATH) + LIB_PATH.length(), bundleItem.indexOf(".so")).replace("_", ".");
-            LogUtil.d(TAG, "bundleItem:" + bundleItem + " ,packageNameFromEntryName:" + packageNameFromEntryName);
-            if (getInstance().getBundle(packageNameFromEntryName) == null) {
-                LogUtil.w(TAG, "bundleItem 尚未被安装过，开始安装:" + packageNameFromEntryName);
-                try {
-                    getInstance().copyToLocal(packageNameFromEntryName, zipFile.getInputStream(zipFile.getEntry(bundleItem)));
-                    LogUtil.d(TAG, "成功安装 bundleItem:" + packageNameFromEntryName);
-                } catch (Exception exception) {
-                    LogUtil.e(TAG, "无法安装 bundleItem:", exception);
+            zipFile = new ZipFile(application.getApplicationInfo().sourceDir);
+            List<String> bundleList = getBundleList(zipFile, BUNDLE_LIB_PATH, BUNDLE_SUFFIX);
+            if (bundleList.size() > 0) {
+                for (String bundleItem : bundleList) {
+                    String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(BUNDLE_LIB_PATH) + BUNDLE_LIB_PATH.length(), bundleItem.indexOf(".so")).replace("_", ".");
+                    if (!isLocalBundleExists(packageNameFromEntryName))
+                        copyToLocal(packageNameFromEntryName, zipFile.getInputStream(zipFile.getEntry(bundleItem)));
                 }
+                saveBundleKey(application, getCurrentBundleKey(application));
             } else {
-                LogUtil.e(TAG, "bundleItem 已经被安装过了:" + packageNameFromEntryName);
+                LogUtil.w(TAG, "find no bundles at " + BUNDLE_LIB_PATH);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (zipFile != null)
+                    zipFile.close();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
-        LogUtil.d(TAG, "copyToLocal:allBundles:" + getInstance().getBundles().toString());
+        LogUtil.w(TAG, "copyBundles:end:allBundles:耗时: " + (System.currentTimeMillis() - startTime) + "ms \n" + getInstance().getBundles().toString());
     }
 
-    public Bundle copyToLocal(String location, InputStream inputStream) throws Exception {
-        LogUtil.d(TAG, "copyToLocal: " + location);
-        Bundle bundle = getBundle(location);
-        if (bundle != null)
-            return bundle;
-        long bundleID = nextBundleID;
-        nextBundleID = 1 + bundleID;
-        bundle = new Bundle(new File(storageLocation, String.valueOf(bundleID)), location, bundleID, inputStream);
-        bundles.put(bundle.getLocation(), bundle);
-        saveToMetadata();
+    private boolean isLocalBundleExists(String packageName) {
+        boolean isLocalBundleExists = getBundle(packageName) != null;
+        LogUtil.d(TAG, packageName + " isLocalBundleExists == " + isLocalBundleExists);
+        return isLocalBundleExists;
+    }
+
+    public Bundle copyToLocal(String location, InputStream inputStream) {
+        LogUtil.d(TAG, "copyToLocal start: " + location);
+        long startTime = System.currentTimeMillis();
+        Bundle bundle = null;
+        try {
+            bundle = getBundle(location);
+            if (bundle != null)
+                return bundle;
+            long bundleID = nextBundleID;
+            nextBundleID = 1 + bundleID;
+            bundle = new Bundle(new File(storageLocation, String.valueOf(bundleID)), location, bundleID, inputStream);
+            bundles.put(bundle.getLocation(), bundle);
+            saveToMetadata();
+        } catch (Exception e) {
+            LogUtil.e(TAG, "copyToLocal failure: " + location, e);
+        }
+        LogUtil.d(TAG, "copyToLocal end: 耗时: " + (System.currentTimeMillis() - startTime) + "ms ");
         return bundle;
     }
 
@@ -226,7 +224,7 @@ public class BundleManager {
     public void uninstallBundle(String location) throws Exception {
         Bundle bundle = getBundle(location);
         if (bundle != null)
-            bundle.getArchive().purge();
+            bundle.getArchive().clean();
     }
 
     public List<Bundle> getBundles() {
@@ -251,28 +249,29 @@ public class BundleManager {
     }
 
     private void saveToProfile() {
-        LogUtil.i(TAG, "saveToProfile");
-        //noinspection SuspiciousToArrayCall
+        LogUtil.d(TAG, "saveToProfile start");
         Bundle[] bundleArray = getBundles().toArray(new Bundle[bundles.size()]);
         for (Bundle bundle : bundleArray)
             bundle.updateMetadata();
         saveToMetadata();
+        LogUtil.d(TAG, "saveToProfile end");
     }
 
     private void saveToMetadata() {
-        LogUtil.i(TAG, "saveToMetadata:" + storageLocation + "/meta" + "  writeLong(nextBundleID):" + nextBundleID);
+        LogUtil.d(TAG, "saveToMetadata:start:" + storageLocation + "meta" + ", save nextBundleID==" + nextBundleID);
         try {
             DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(new File(storageLocation, "meta")));
             dataOutputStream.writeLong(nextBundleID);
             dataOutputStream.flush();
             dataOutputStream.close();
         } catch (Throwable e) {
-            LogUtil.e(TAG, "Could not save meta data.", e);
+            LogUtil.e(TAG, "could not save meta data.", e);
         }
+        LogUtil.d(TAG, "saveToMetadata:end");
     }
 
     private int restoreFromProfile() {
-        LogUtil.i(TAG, "restoreFromProfile");
+        LogUtil.d(TAG, "restoreFromProfile start");
         try {
             File file = new File(storageLocation, "meta");
             if (file.exists()) {
@@ -287,19 +286,20 @@ public class BundleManager {
                         try {
                             Bundle bundle = new Bundle(listFiles[i]);
                             bundles.put(bundle.getLocation(), bundle);
-                            LogUtil.w(TAG, "restored bundle " + bundle.getLocation());
+                            LogUtil.w(TAG, "success to restore bundle: " + bundle.getLocation());
                         } catch (Exception e) {
                             LogUtil.e(TAG, e.getMessage(), e.getCause());
                         }
                     }
                     i++;
                 }
+                LogUtil.d(TAG, "restoreFromProfile end , return 1(成功)");
                 return 1;
             }
-            LogUtil.e(TAG, "Profile not found, performing clean start ...");
+            LogUtil.d(TAG, "restoreFromProfile end , return -1(meta不存在)");
             return -1;
-        } catch (Exception e2) {
-            e2.printStackTrace();
+        } catch (Exception e) {
+            LogUtil.d(TAG, "restoreFromProfile end , return 0(异常)", e);
             return 0;
         }
     }
@@ -313,5 +313,16 @@ public class BundleManager {
             e.printStackTrace();
         }
         return bundleKey;
+    }
+
+    private static final String KEY_LAST_BUNDLE = "KEY_LAST_BUNDLE";
+
+    private static void saveBundleKey(Application application, String bundleKey) {
+        LogUtil.w(TAG, "saveBundleKey:" + bundleKey);
+        PreferencesUtil.getInstance(application).putString(KEY_LAST_BUNDLE, bundleKey);
+    }
+
+    public String getLastBundleKey(Application application) {
+        return PreferencesUtil.getInstance(application).getString(KEY_LAST_BUNDLE);
     }
 }

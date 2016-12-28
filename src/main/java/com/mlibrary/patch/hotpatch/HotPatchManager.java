@@ -109,8 +109,8 @@ public class HotPatchManager {
         return ret;
     }
 
-    public void purge() {
-        LogUtil.d(TAG, "purge");
+    public void clean() {
+        LogUtil.d(TAG, "clean deleteDirectory:" + patchDir.getPath());
         if (patchDir.exists())
             FileUtil.deleteDirectory(patchDir);
     }

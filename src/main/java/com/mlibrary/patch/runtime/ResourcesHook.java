@@ -55,7 +55,6 @@ public class ResourcesHook extends Resources {
             StringBuilder stringBuffer = new StringBuilder();
             stringBuffer.append("newResourcesHook:addAssetPath [\n");
             for (int i = 0; i < arrayList.size(); i++) {
-                stringBuffer.append("\t");
                 if (i > 0)
                     stringBuffer.append(",\n");
                 stringBuffer.append(arrayList.get(i));

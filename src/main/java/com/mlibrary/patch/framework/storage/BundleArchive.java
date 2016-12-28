@@ -34,7 +34,7 @@ public class BundleArchive {
             }
         }
         if (revisionSortedMap.isEmpty())
-            throw new IOException("No Valid revisions in bundle archive directory");
+            throw new IOException("no valid revisions in bundle archive directory");
         long longValue = this.revisionSortedMap.lastKey();
         BundleArchiveRevision bundleArchiveRevision = new BundleArchiveRevision(longValue, new File(bundleDir, REVISION_DIRECTORY + "_" + String.valueOf(longValue)));
         this.revisionSortedMap.put(longValue, bundleArchiveRevision);
@@ -63,7 +63,7 @@ public class BundleArchive {
         this.currentRevision.installBundleDex();
     }
 
-    public void purge() throws Exception {
+    public void clean() throws Exception {
         FileUtil.deleteDirectory(this.currentRevision.getRevisionDir());
         long lastKey = this.revisionSortedMap.lastKey();
         this.revisionSortedMap.clear();
