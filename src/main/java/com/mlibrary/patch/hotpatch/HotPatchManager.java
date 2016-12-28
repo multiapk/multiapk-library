@@ -50,7 +50,7 @@ public class HotPatchManager {
      */
     public void run() {
         try {
-            initHotPatchs();
+            initHotPatches();
             if (!sortedMap.isEmpty()) {
                 for (Map.Entry<Integer, HotPatchItem> entry : sortedMap.entrySet()) {
                     HotPatchItem item = entry.getValue();
@@ -135,7 +135,7 @@ public class HotPatchManager {
 
     }
 
-    private void initHotPatchs() {
+    private void initHotPatches() {
         if (!patchDir.exists()) {
             patchDir.mkdirs();
         }

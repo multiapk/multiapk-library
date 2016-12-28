@@ -22,7 +22,7 @@ import java.util.List;
  * 挂载载系统资源中，处理框架资源加载
  */
 public class ResourcesHook extends Resources {
-    public static final String TAG = MLibraryPatch.TAG + ":DelegateResources";
+    public static final String TAG = MLibraryPatch.TAG + ":ResourcesHook";
 
     @SuppressWarnings("deprecation")
     private ResourcesHook(AssetManager assets, Resources resources) {

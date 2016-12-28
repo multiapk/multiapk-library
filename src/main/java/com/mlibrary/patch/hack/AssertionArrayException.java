@@ -16,7 +16,6 @@ class AssertionArrayException extends Exception {
         this.mAssertionErr = new ArrayList<>();
     }
 
-    @SuppressWarnings("unused")
     public static AssertionArrayException mergeException(AssertionArrayException assertionArrayException, AssertionArrayException assertionArrayException2) {
         if (assertionArrayException == null) {
             return assertionArrayException2;

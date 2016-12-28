@@ -15,7 +15,7 @@ import static com.mlibrary.patch.hack.Interception.proxy;
  */
 @SuppressWarnings("unchecked")
 public class Hack {
-    private static AssertionFailureHandler sFailureHandler;
+    private static AssertionFailureHandler assertionFailureHandler;
 
     private Hack() {
     }
@@ -34,12 +34,12 @@ public class Hack {
     }
 
     private static void fail(HackDeclaration.HackAssertionException hackAssertionException) throws HackDeclaration.HackAssertionException {
-        if (sFailureHandler == null || !sFailureHandler.onAssertionFailure(hackAssertionException))
+        if (assertionFailureHandler == null || !assertionFailureHandler.onAssertionFailure(hackAssertionException))
             throw hackAssertionException;
     }
 
     public static void setAssertionFailureHandler(AssertionFailureHandler assertionFailureHandler) {
-        sFailureHandler = assertionFailureHandler;
+        Hack.assertionFailureHandler = assertionFailureHandler;
     }
 
     public interface AssertionFailureHandler {
@@ -224,7 +224,8 @@ public class Hack {
             T obj = get(c);
             if (obj == null)
                 throw new IllegalStateException("Cannot hijack null");
-            set(c, proxy(obj, (InterceptionHandler) interceptionHandler, obj.getClass().getInterfaces()));
+            Class<?>[] classes = obj.getClass().getInterfaces();
+            set(c, proxy(obj, (InterceptionHandler) interceptionHandler, classes));
         }
 
         public Field getField() {

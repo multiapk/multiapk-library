@@ -14,18 +14,13 @@ import java.util.Map;
  * Android中的Resource Hack
  */
 public class AndroidHack {
-    private static Object _mLoadedApk;
-    private static Object _sActivityThread;
-
-    static {
-        _sActivityThread = null;
-        _mLoadedApk = null;
-    }
+    private static Object loadedApk = null;
+    private static Object activityThread = null;
 
     private static Object getActivityThread() throws Exception {
-        if (_sActivityThread == null) {
+        if (activityThread == null) {
             if (Thread.currentThread().getId() == Looper.getMainLooper().getThread().getId()) {
-                _sActivityThread = SysHacks.ActivityThread_currentActivityThread.invoke(null);
+                activityThread = SysHacks.ActivityThread_currentActivityThread.invoke(null);
             } else {
                 Handler handler = new Handler(Looper.getMainLooper());
                 //noinspection SynchronizeOnNonFinalField
@@ -35,17 +30,17 @@ public class AndroidHack {
                 }
             }
         }
-        return _sActivityThread;
+        return activityThread;
     }
 
     private static Object getLoadedApk(Object obj, String str) throws Exception {
-        if (_mLoadedApk == null) {
+        if (loadedApk == null) {
             WeakReference weakReference = (WeakReference) ((Map) SysHacks.ActivityThread_mPackages.get(obj)).get(str);
             if (weakReference != null) {
-                _mLoadedApk = weakReference.get();
+                loadedApk = weakReference.get();
             }
         }
-        return _mLoadedApk;
+        return loadedApk;
     }
 
     public static void injectResources(Application application, Resources resources) throws Exception {
@@ -84,7 +79,7 @@ public class AndroidHack {
 
         public void run() {
             try {
-                _sActivityThread = SysHacks.ActivityThread_currentActivityThread.invoke(SysHacks.ActivityThread.getClazz());
+                activityThread = SysHacks.ActivityThread_currentActivityThread.invoke(SysHacks.ActivityThread.getClazz());
             } catch (Exception e) {
                 e.printStackTrace();
             }
