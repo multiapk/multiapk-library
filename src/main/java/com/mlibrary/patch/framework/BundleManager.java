@@ -110,7 +110,7 @@ public class BundleManager {
                 }
             }).start();
         } else {
-            LogUtil.d(TAG, "checkStatus: currentBundleKey == lastBundleKey , restore from local hotfix and bundles, isLocalBundlesValid==" + isLocalBundlesValid);
+            LogUtil.d(TAG, "checkStatus: currentBundleKey == lastBundleKey , restore from local hotfix and bundles, isLocalBundlesValid==true");
             restoreFromProfile();
             HotPatchManager.getInstance().installHotFixDexs();
             installBundleDexs();
@@ -123,16 +123,17 @@ public class BundleManager {
         //校验local所有数据正确性，如果不正确 cleanLocal，重新 copyToLocal
         //验证meta是否存在
         //验证bundles md5，最好在md5正确的bundle.zip里重新释放bundle.dex,确保万无一失，防止被恶意修改
-        return true;
+        return isLocalMetaFileExists();
     }
 
     public void cleanLocal() {
-        LogUtil.w(TAG, "cleanLocal:" + storageLocation);
+        LogUtil.w(TAG, "cleanLocal start:" + storageLocation);
         File file = new File(storageLocation);
         if (file.exists())
             FileUtil.deleteDirectory(file);
         file.mkdirs();
         saveToProfile();
+        LogUtil.w(TAG, "cleanLocal end");
     }
 
     public void installBundleDexs() {
@@ -278,12 +279,20 @@ public class BundleManager {
         LogUtil.d(TAG, "saveToMetadata:end");
     }
 
+    private boolean isLocalMetaFileExists() {
+        return getLocalMetaFile().exists();
+    }
+
+    private File getLocalMetaFile() {
+        return new File(storageLocation, "meta");
+    }
+
     private int restoreFromProfile() {
         LogUtil.w(TAG, "restoreFromProfile start");
         try {
-            File file = new File(storageLocation, "meta");
-            if (file.exists()) {
-                DataInputStream dataInputStream = new DataInputStream(new FileInputStream(file));
+            File localMetaFile = getLocalMetaFile();
+            if (localMetaFile.exists()) {
+                DataInputStream dataInputStream = new DataInputStream(new FileInputStream(localMetaFile));
                 nextBundleID = dataInputStream.readLong();
                 dataInputStream.close();
                 File file2 = new File(storageLocation);
