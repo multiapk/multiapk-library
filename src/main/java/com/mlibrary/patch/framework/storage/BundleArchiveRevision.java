@@ -3,11 +3,11 @@ package com.mlibrary.patch.framework.storage;
 import android.content.res.AssetManager;
 
 import com.mlibrary.patch.hack.SysHacks;
-import com.mlibrary.patch.loader.BundlePathLoader;
+import com.mlibrary.patch.framework.BundleDexInstaller;
 import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.util.MLibraryPatchUtil;
+import com.mlibrary.patch.MLibraryPatch;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -27,7 +27,7 @@ import java.util.zip.ZipFile;
  * 采用PathClassLoader 加载 dex文件，并opt释放优化后的dex
  */
 class BundleArchiveRevision {
-    private static final String TAG = MLibraryPatchUtil.TAG + ":BundleArchiveRevision";
+    private static final String TAG = MLibraryPatch.TAG + ":BundleArchiveRevision";
     private static final String BUNDLE_FILE_NAME = "bundle.zip";
     private static final String BUNDLE_DEX_FILE = "bundle.dex";
     private static final String FILE_PROTOCOL = "file:";
@@ -127,7 +127,7 @@ class BundleArchiveRevision {
     void optimizeDexFile() throws Exception {
         List<File> files = new ArrayList<>();
         files.add(this.bundleFile);
-        BundlePathLoader.installBundleDexs(RuntimeArgs.androidApplication.getClassLoader(), revisionDir, files, false);
+        BundleDexInstaller.installBundleDexs(RuntimeArgs.androidApplication.getClassLoader(), revisionDir, files, false);
     }
 
     InputStream openAssetInputStream(String fileName) throws IOException {

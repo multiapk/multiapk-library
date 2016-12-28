@@ -1,8 +1,9 @@
 package com.mlibrary.patch.framework.storage;
 
 
+import android.text.TextUtils;
+
 import com.mlibrary.patch.util.FileUtil;
-import com.mlibrary.patch.util.StringUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class BundleArchive {
         if (lists != null) {
             for (String str : lists) {
                 if (str.startsWith(REVISION_DIRECTORY)) {
-                    long parseLong = Long.parseLong(StringUtil.subStringAfter(str, "_"));
+                    long parseLong = Long.parseLong(subStringAfter(str, "_"));
                     if (parseLong > 0)
                         this.revisionSortedMap.put(parseLong, null);
                 }
@@ -70,5 +71,12 @@ public class BundleArchive {
             this.revisionSortedMap.put(0L, this.currentRevision);
         else
             this.revisionSortedMap.put(lastKey - 1, this.currentRevision);
+    }
+
+    private static String subStringAfter(String source, String prefix) {
+        if (TextUtils.isEmpty(source) || prefix == null)
+            return source;
+        int indexOf = source.indexOf(prefix);
+        return indexOf != -1 ? source.substring(indexOf + prefix.length()) : "";
     }
 }

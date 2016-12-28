@@ -9,8 +9,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 
-@SuppressWarnings("unused")
-class PreferencesUtil {
+public class PreferencesUtil {
     private static final String DATA_NAME = "mlibrarypatch.preferences";
     private static PreferencesUtil instance;
     private SharedPreferences mSharedPreferences;
@@ -18,7 +17,7 @@ class PreferencesUtil {
     private PreferencesUtil() {
     }
 
-    static synchronized PreferencesUtil getInstance(Context context) {
+    public static synchronized PreferencesUtil getInstance(Context context) {
         if (instance == null) {
             instance = new PreferencesUtil();
             instance.mSharedPreferences = context.getSharedPreferences(DATA_NAME, Context.MODE_PRIVATE);
@@ -36,13 +35,13 @@ class PreferencesUtil {
         return editor.commit();
     }
 
-    boolean putString(String key, String value) {
+    public boolean putString(String key, String value) {
         Editor editor = this.mSharedPreferences.edit();
         editor.putString(key, value);
         return editor.commit();
     }
 
-    String getString(String key) {
+    public String getString(String key) {
         return this.mSharedPreferences.getString(key, "");
     }
 

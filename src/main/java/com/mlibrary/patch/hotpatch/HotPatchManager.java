@@ -5,7 +5,7 @@ import android.text.TextUtils;
 import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.util.MLibraryPatchUtil;
+import com.mlibrary.patch.MLibraryPatch;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +17,7 @@ import java.util.TreeMap;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class HotPatchManager {
-    public static final String TAG = MLibraryPatchUtil.TAG + ":HotPatchItem";
+    public static final String TAG = MLibraryPatch.TAG + ":HotPatchItem";
     private static volatile HotPatchManager instance;
     private static SortedMap<Integer, HotPatchItem> sortedMap;
 

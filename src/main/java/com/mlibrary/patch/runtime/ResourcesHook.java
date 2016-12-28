@@ -7,11 +7,11 @@ import android.content.res.Resources;
 import android.util.DisplayMetrics;
 
 import com.mlibrary.patch.framework.Bundle;
-import com.mlibrary.patch.framework.BundleCore;
+import com.mlibrary.patch.framework.BundleManager;
 import com.mlibrary.patch.hack.AndroidHack;
 import com.mlibrary.patch.hack.SysHacks;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.util.MLibraryPatchUtil;
+import com.mlibrary.patch.MLibraryPatch;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -21,16 +21,16 @@ import java.util.List;
  * Created by yb.wang on 15/1/5.
  * 挂载载系统资源中，处理框架资源加载
  */
-public class DelegateResources extends Resources {
-    public static final String TAG = MLibraryPatchUtil.TAG + ":DelegateResources";
+public class ResourcesHook extends Resources {
+    public static final String TAG = MLibraryPatch.TAG + ":DelegateResources";
 
     @SuppressWarnings("deprecation")
-    private DelegateResources(AssetManager assets, Resources resources) {
+    private ResourcesHook(AssetManager assets, Resources resources) {
         super(assets, resources.getDisplayMetrics(), resources.getConfiguration());
     }
 
-    public static void newDelegateResources(Application application, Resources resources) throws Exception {
-        List<Bundle> bundles = BundleCore.getInstance().getBundles();
+    public static void newResourcesHook(Application application, Resources resources) throws Exception {
+        List<Bundle> bundles = BundleManager.getInstance().getBundles();
         if (bundles != null && !bundles.isEmpty()) {
             Resources delegateResources;
             List<String> arrayList = new ArrayList<>();
@@ -42,7 +42,7 @@ public class DelegateResources extends Resources {
                 SysHacks.AssetManager_addAssetPath.invoke(assetManager, str);
             //处理小米UI资源
             if (resources == null || !resources.getClass().getName().equals("android.content.res.MiuiResources")) {
-                delegateResources = new DelegateResources(assetManager, resources);
+                delegateResources = new ResourcesHook(assetManager, resources);
             } else {
                 Constructor declaredConstructor = Class.forName("android.content.res.MiuiResources").getDeclaredConstructor(AssetManager.class, DisplayMetrics.class, Configuration.class);
                 declaredConstructor.setAccessible(true);
@@ -51,7 +51,7 @@ public class DelegateResources extends Resources {
             RuntimeArgs.delegateResources = delegateResources;
             AndroidHack.injectResources(application, delegateResources);
             StringBuilder stringBuffer = new StringBuilder();
-            stringBuffer.append("newDelegateResources [");
+            stringBuffer.append("newResourcesHook [");
             for (int i = 0; i < arrayList.size(); i++) {
                 if (i > 0)
                     stringBuffer.append(",");

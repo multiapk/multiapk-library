@@ -1,4 +1,4 @@
-package com.mlibrary.patch.loader;
+package com.mlibrary.patch.framework;
 
 import android.os.Build;
 import android.util.Log;
@@ -18,8 +18,8 @@ import java.util.zip.ZipFile;
 
 import dalvik.system.DexFile;
 
-public class BundlePathLoader {
-    private BundlePathLoader() {
+public class BundleDexInstaller {
+    private BundleDexInstaller() {
     }
 
     public static void installBundleDexs(ClassLoader loader, File dexDir, List<File> files, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException, InvocationTargetException, NoSuchMethodException, IOException {
@@ -108,7 +108,7 @@ public class BundlePathLoader {
      * @param extraElements elements to append at the end of the array.
      */
     private static void expandFieldArray(Object instance, String fieldName, Object[] extraElements, boolean isHotFix) throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
-        synchronized (BundlePathLoader.class) {
+        synchronized (BundleDexInstaller.class) {
             Field jlrField = findField(instance, fieldName);
             Object[] original = (Object[]) jlrField.get(instance);
             Object[] combined = (Object[]) Array.newInstance(

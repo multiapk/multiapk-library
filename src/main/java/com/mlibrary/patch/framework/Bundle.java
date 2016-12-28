@@ -3,7 +3,7 @@ package com.mlibrary.patch.framework;
 import com.mlibrary.patch.framework.storage.BundleArchive;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.util.MLibraryPatchUtil;
+import com.mlibrary.patch.MLibraryPatch;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class Bundle {
-    public static final String TAG = MLibraryPatchUtil.TAG + ":Bundle";
+    public static final String TAG = MLibraryPatch.TAG + ":Bundle";
 
     private final File bundleDir;
     private final String location;

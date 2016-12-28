@@ -1,12 +1,14 @@
-package com.mlibrary.patch.util;
+package com.mlibrary.patch;
 
 import android.app.Application;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.text.TextUtils;
 
-import com.mlibrary.patch.framework.BundleCore;
+import com.mlibrary.patch.framework.BundleManager;
 import com.mlibrary.patch.hotpatch.HotPatchManager;
+import com.mlibrary.patch.util.LogUtil;
+import com.mlibrary.patch.util.PreferencesUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,10 +17,9 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-public class MLibraryPatchUtil {
+public class MLibraryPatch {
     public static final String TAG = "MLibraryPatch";
     private static final String KEY_LAST_BUNDLE = "KEY_LAST_BUNDLE";
-
     public static String defaultActivityWhileClassNotFound = null;
 
     public static void init(final Application application) {
@@ -28,10 +29,10 @@ public class MLibraryPatchUtil {
     public static void init(final Application application, String defaultActivityWhileClassNotFound, boolean isOpenLog) {
         if (application == null)
             return;
-        MLibraryPatchUtil.defaultActivityWhileClassNotFound = defaultActivityWhileClassNotFound;
+        MLibraryPatch.defaultActivityWhileClassNotFound = defaultActivityWhileClassNotFound;
         try {
             LogUtil.d(TAG, "开始初始化 hotfix/bundle");
-            BundleCore.getInstance().init(application, isOpenLog);
+            BundleManager.getInstance().init(application, isOpenLog);
 
             String lastBundleKey = PreferencesUtil.getInstance(application).getString(KEY_LAST_BUNDLE);
             final String currentBundleKey = buildBundleKey(application);
@@ -47,35 +48,35 @@ public class MLibraryPatchUtil {
                 LogUtil.d(TAG, "删除 热修复 所有补丁");
                 HotPatchManager.getInstance().purge();//清除
             }
-            BundleCore.getInstance().startup(needReInitBundle);
-            LogUtil.d(TAG, BundleCore.LIB_PATH + " 下所有的 bundle(so/apk) 之前" + (!needReInitBundle ? "已经" : "尚未") + "被初始化过");
+            BundleManager.getInstance().startup(needReInitBundle);
+            LogUtil.d(TAG, BundleManager.LIB_PATH + " 下所有的 bundle(so/apk) 之前" + (!needReInitBundle ? "已经" : "尚未") + "被初始化过");
             //BundleCore.getInstance().startup(properties);
             if (!needReInitBundle) {
                 LogUtil.d(TAG, "非初次:加载 热修复 所有补丁");
                 HotPatchManager.getInstance().run();
-                LogUtil.d(TAG, "非初次:加载 " + BundleCore.LIB_PATH + " 下所有的 bundle(so/apk)");
-                BundleCore.getInstance().run();
+                LogUtil.d(TAG, "非初次:加载 " + BundleManager.LIB_PATH + " 下所有的 bundle(so/apk)");
+                BundleManager.getInstance().run();
             } else {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
                         try {
                             ZipFile zipFile = new ZipFile(application.getApplicationInfo().sourceDir);
-                            List<String> bundleFiles = getBundleList(zipFile, BundleCore.LIB_PATH, ".so");
+                            List<String> bundleFiles = getBundleList(zipFile, BundleManager.LIB_PATH, ".so");
                             if (bundleFiles.size() > 0) {
                                 processLibsBundles(zipFile, bundleFiles);
                                 LogUtil.d(TAG, "保存最新的 bundleKey:" + currentBundleKey);
                                 PreferencesUtil.getInstance(application).putString(KEY_LAST_BUNDLE, currentBundleKey);
                             } else {
-                                LogUtil.e(TAG, BundleCore.LIB_PATH + " 下没有发现任何 bundle");
+                                LogUtil.e(TAG, BundleManager.LIB_PATH + " 下没有发现任何 bundle");
                             }
                             try {
                                 zipFile.close();
                             } catch (IOException exception) {
                                 exception.printStackTrace();
                             }
-                            LogUtil.d(TAG, "初次:加载 " + BundleCore.LIB_PATH + " 下所有的 bundle(so/apk)");
-                            BundleCore.getInstance().run();
+                            LogUtil.d(TAG, "初次:加载 " + BundleManager.LIB_PATH + " 下所有的 bundle(so/apk)");
+                            BundleManager.getInstance().run();
                         } catch (IOException ex) {
                             ex.printStackTrace();
                         }
@@ -105,14 +106,14 @@ public class MLibraryPatchUtil {
 
     private static void processLibsBundles(ZipFile zipFile, List<String> bundleList) {
         LogUtil.d(TAG, "processLibsBundles:start");
-        LogUtil.d(TAG, "processLibsBundles:allBundles:" + BundleCore.getInstance().getBundles().toString());
+        LogUtil.d(TAG, "processLibsBundles:allBundles:" + BundleManager.getInstance().getBundles().toString());
         for (String bundleItem : bundleList) {
-            String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(BundleCore.LIB_PATH) + BundleCore.LIB_PATH.length(), bundleItem.indexOf(".so")).replace("_", ".");
+            String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(BundleManager.LIB_PATH) + BundleManager.LIB_PATH.length(), bundleItem.indexOf(".so")).replace("_", ".");
             LogUtil.d(TAG, "bundleItem:" + bundleItem + " ,packageNameFromEntryName:" + packageNameFromEntryName);
-            if (BundleCore.getInstance().getBundle(packageNameFromEntryName) == null) {
+            if (BundleManager.getInstance().getBundle(packageNameFromEntryName) == null) {
                 LogUtil.w(TAG, "bundleItem 尚未被安装过，开始安装:" + packageNameFromEntryName);
                 try {
-                    BundleCore.getInstance().installBundle(packageNameFromEntryName, zipFile.getInputStream(zipFile.getEntry(bundleItem)));
+                    BundleManager.getInstance().installBundle(packageNameFromEntryName, zipFile.getInputStream(zipFile.getEntry(bundleItem)));
                     LogUtil.d(TAG, "成功安装 bundleItem:" + packageNameFromEntryName);
                 } catch (Exception exception) {
                     LogUtil.e(TAG, "无法安装 bundleItem:", exception);
@@ -121,7 +122,7 @@ public class MLibraryPatchUtil {
                 LogUtil.e(TAG, "bundleItem 已经被安装过了:" + packageNameFromEntryName);
             }
         }
-        LogUtil.d(TAG, "processLibsBundles:allBundles:" + BundleCore.getInstance().getBundles().toString());
+        LogUtil.d(TAG, "processLibsBundles:allBundles:" + BundleManager.getInstance().getBundles().toString());
         LogUtil.d(TAG, "processLibsBundles:end");
     }
 }

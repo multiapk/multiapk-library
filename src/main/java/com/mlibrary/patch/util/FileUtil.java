@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class FileUtil {
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void deleteDirectory(File file) {
         if (file != null) {
             File[] listFiles = file.listFiles();

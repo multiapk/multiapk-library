@@ -21,7 +21,7 @@ import android.view.MotionEvent;
 
 import com.mlibrary.patch.hack.SysHacks;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.util.MLibraryPatchUtil;
+import com.mlibrary.patch.MLibraryPatch;
 
 import java.util.List;
 
@@ -30,16 +30,15 @@ import java.util.List;
  * Created by yb.wang on 15/1/5.
  * 挂载在系统中的Instrumentation，以拦截相应的方法
  */
-@SuppressWarnings("unused")
 public class InstrumentationHook extends Instrumentation {
-    public static final String TAG = MLibraryPatchUtil.TAG + ":InstrumentationHook";
+    public static final String TAG = MLibraryPatch.TAG + ":InstrumentationHook";
 
     private Context context;
-    private Instrumentation mBase;
+    private Instrumentation instrumentation;
 
     public InstrumentationHook(Instrumentation instrumentation, Context context) {
+        this.instrumentation = instrumentation;
         this.context = context;
-        this.mBase = instrumentation;
     }
 
     public ActivityResult execStartActivity(final Context context, final IBinder iBinder, final IBinder iBinder2, final Activity activity, final Intent intent, final int i) {
@@ -48,7 +47,7 @@ public class InstrumentationHook extends Instrumentation {
             public ActivityResult execStartActivity() {
                 try {
                     return (ActivityResult) SysHacks.Instrumentation.method("execStartActivity", Context.class, IBinder.class, IBinder.class, Activity.class, Intent.class, int.class)
-                            .invoke(mBase, context, iBinder, iBinder2, activity, intent, i);
+                            .invoke(instrumentation, context, iBinder, iBinder2, activity, intent, i);
                 } catch (Throwable ex) {
                     ex.printStackTrace();
                     return null;
@@ -64,7 +63,7 @@ public class InstrumentationHook extends Instrumentation {
             public ActivityResult execStartActivity() {
                 try {
                     Object result = SysHacks.Instrumentation.method("execStartActivity", Context.class, IBinder.class, IBinder.class, Activity.class, Intent.class, int.class, Bundle.class)
-                            .invoke(mBase, context, iBinder, iBinder2, activity, intent, i, bundle);
+                            .invoke(instrumentation, context, iBinder, iBinder2, activity, intent, i, bundle);
                     if (result != null) return (ActivityResult) result;
                 } catch (Throwable ex) {
                     ex.printStackTrace();
@@ -82,7 +81,7 @@ public class InstrumentationHook extends Instrumentation {
             public ActivityResult execStartActivity() {
                 try {
                     return (ActivityResult) SysHacks.Instrumentation.method("execStartActivity", Context.class, IBinder.class, IBinder.class, Fragment.class, Intent.class, int.class)
-                            .invoke(mBase, context, iBinder, iBinder2, fragment, intent, i);
+                            .invoke(instrumentation, context, iBinder, iBinder2, fragment, intent, i);
                 } catch (Throwable ex) {
                     ex.printStackTrace();
                     return null;
@@ -99,7 +98,7 @@ public class InstrumentationHook extends Instrumentation {
             public ActivityResult execStartActivity() {
                 try {
                     return (ActivityResult) SysHacks.Instrumentation.method("execStartActivity", Context.class, IBinder.class, IBinder.class, Fragment.class, Intent.class, int.class, Bundle.class)
-                            .invoke(mBase, context, iBinder, iBinder2, fragment, intent, i, bundle);
+                            .invoke(instrumentation, context, iBinder, iBinder2, fragment, intent, i, bundle);
                 } catch (Throwable ex) {
                     ex.printStackTrace();
                     return null;
@@ -128,7 +127,7 @@ public class InstrumentationHook extends Instrumentation {
     }
 
     public Activity newActivity(Class<?> cls, Context context, IBinder iBinder, Application application, Intent intent, ActivityInfo activityInfo, CharSequence charSequence, Activity activity, String str, Object obj) throws InstantiationException, IllegalAccessException {
-        Activity newActivity = this.mBase.newActivity(cls, context, iBinder, application, intent, activityInfo, charSequence, activity, str, obj);
+        Activity newActivity = this.instrumentation.newActivity(cls, context, iBinder, application, intent, activityInfo, charSequence, activity, str, obj);
         if (RuntimeArgs.androidApplication.getPackageName().equals(activityInfo.packageName) && SysHacks.ContextThemeWrapper_mResources != null) {
             SysHacks.ContextThemeWrapper_mResources.set(newActivity, RuntimeArgs.delegateResources);
         }
@@ -139,13 +138,13 @@ public class InstrumentationHook extends Instrumentation {
     public Activity newActivity(ClassLoader classLoader, String str, Intent intent) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         Activity newActivity;
         try {
-            newActivity = this.mBase.newActivity(classLoader, str, intent);
+            newActivity = this.instrumentation.newActivity(classLoader, str, intent);
             if (SysHacks.ContextThemeWrapper_mResources != null) {
                 SysHacks.ContextThemeWrapper_mResources.set(newActivity, RuntimeArgs.delegateResources);
             }
         } catch (ClassNotFoundException e) {
             //String property = Framework.getProperty("ctrip.android.bundle.welcome", "ctrip.android.view.home.CtripSplashActivity");
-            if (TextUtils.isEmpty(MLibraryPatchUtil.defaultActivityWhileClassNotFound)) {
+            if (TextUtils.isEmpty(MLibraryPatch.defaultActivityWhileClassNotFound)) {
                 throw e;
             } else {
                 List runningTasks = ((ActivityManager) this.context.getSystemService(Context.ACTIVITY_SERVICE)).getRunningTasks(1);
@@ -155,8 +154,8 @@ public class InstrumentationHook extends Instrumentation {
                     }
                 }
                 LogUtil.w(TAG, "Could not find activity class: " + str);
-                LogUtil.w(TAG, "Redirect to welcome activity: " + MLibraryPatchUtil.defaultActivityWhileClassNotFound);
-                newActivity = this.mBase.newActivity(classLoader, MLibraryPatchUtil.defaultActivityWhileClassNotFound, intent);
+                LogUtil.w(TAG, "Redirect to welcome activity: " + MLibraryPatch.defaultActivityWhileClassNotFound);
+                newActivity = this.instrumentation.newActivity(classLoader, MLibraryPatch.defaultActivityWhileClassNotFound, intent);
             }
         }
         return newActivity;
@@ -164,232 +163,232 @@ public class InstrumentationHook extends Instrumentation {
 
     public void callActivityOnCreate(Activity activity, Bundle bundle) {
         if (RuntimeArgs.androidApplication.getPackageName().equals(activity.getPackageName())) {
-            ContextImplHook contextImplHook = new ContextImplHook(activity.getBaseContext());
+            ContextWrapperHook contextWrapperHook = new ContextWrapperHook(activity.getBaseContext());
             if (!(SysHacks.ContextThemeWrapper_mBase == null || SysHacks.ContextThemeWrapper_mBase.getField() == null)) {
-                SysHacks.ContextThemeWrapper_mBase.set(activity, contextImplHook);
+                SysHacks.ContextThemeWrapper_mBase.set(activity, contextWrapperHook);
             }
-            SysHacks.ContextWrapper_mBase.set(activity, contextImplHook);
+            SysHacks.ContextWrapper_mBase.set(activity, contextWrapperHook);
         }
-        this.mBase.callActivityOnCreate(activity, bundle);
+        this.instrumentation.callActivityOnCreate(activity, bundle);
     }
 
     @TargetApi(18)
     public UiAutomation getUiAutomation() {
-        return this.mBase.getUiAutomation();
+        return this.instrumentation.getUiAutomation();
     }
 
     public void onCreate(Bundle bundle) {
-        this.mBase.onCreate(bundle);
+        this.instrumentation.onCreate(bundle);
     }
 
     public void start() {
-        this.mBase.start();
+        this.instrumentation.start();
     }
 
     public void onStart() {
-        this.mBase.onStart();
+        this.instrumentation.onStart();
     }
 
     public boolean onException(Object obj, Throwable th) {
-        return this.mBase.onException(obj, th);
+        return this.instrumentation.onException(obj, th);
     }
 
     public void sendStatus(int i, Bundle bundle) {
-        this.mBase.sendStatus(i, bundle);
+        this.instrumentation.sendStatus(i, bundle);
     }
 
     public void finish(int i, Bundle bundle) {
-        this.mBase.finish(i, bundle);
+        this.instrumentation.finish(i, bundle);
     }
 
     public void setAutomaticPerformanceSnapshots() {
-        this.mBase.setAutomaticPerformanceSnapshots();
+        this.instrumentation.setAutomaticPerformanceSnapshots();
     }
 
     public void startPerformanceSnapshot() {
-        this.mBase.startPerformanceSnapshot();
+        this.instrumentation.startPerformanceSnapshot();
     }
 
     public void endPerformanceSnapshot() {
-        this.mBase.endPerformanceSnapshot();
+        this.instrumentation.endPerformanceSnapshot();
     }
 
     public void onDestroy() {
-        this.mBase.onDestroy();
+        this.instrumentation.onDestroy();
     }
 
     public Context getContext() {
-        return this.mBase.getContext();
+        return this.instrumentation.getContext();
     }
 
     public ComponentName getComponentName() {
-        return this.mBase.getComponentName();
+        return this.instrumentation.getComponentName();
     }
 
     public Context getTargetContext() {
-        return this.mBase.getTargetContext();
+        return this.instrumentation.getTargetContext();
     }
 
     public boolean isProfiling() {
-        return this.mBase.isProfiling();
+        return this.instrumentation.isProfiling();
     }
 
     public void startProfiling() {
-        this.mBase.startProfiling();
+        this.instrumentation.startProfiling();
     }
 
     public void stopProfiling() {
-        this.mBase.stopProfiling();
+        this.instrumentation.stopProfiling();
     }
 
     public void setInTouchMode(boolean z) {
-        this.mBase.setInTouchMode(z);
+        this.instrumentation.setInTouchMode(z);
     }
 
     public void waitForIdle(Runnable runnable) {
-        this.mBase.waitForIdle(runnable);
+        this.instrumentation.waitForIdle(runnable);
     }
 
     public void waitForIdleSync() {
-        this.mBase.waitForIdleSync();
+        this.instrumentation.waitForIdleSync();
     }
 
     public void runOnMainSync(Runnable runnable) {
-        this.mBase.runOnMainSync(runnable);
+        this.instrumentation.runOnMainSync(runnable);
     }
 
     public Activity startActivitySync(Intent intent) {
-        return this.mBase.startActivitySync(intent);
+        return this.instrumentation.startActivitySync(intent);
     }
 
     public void addMonitor(ActivityMonitor activityMonitor) {
-        this.mBase.addMonitor(activityMonitor);
+        this.instrumentation.addMonitor(activityMonitor);
     }
 
     public ActivityMonitor addMonitor(IntentFilter intentFilter, ActivityResult activityResult, boolean z) {
-        return this.mBase.addMonitor(intentFilter, activityResult, z);
+        return this.instrumentation.addMonitor(intentFilter, activityResult, z);
     }
 
     public ActivityMonitor addMonitor(String str, ActivityResult activityResult, boolean z) {
-        return this.mBase.addMonitor(str, activityResult, z);
+        return this.instrumentation.addMonitor(str, activityResult, z);
     }
 
     public boolean checkMonitorHit(ActivityMonitor activityMonitor, int i) {
-        return this.mBase.checkMonitorHit(activityMonitor, i);
+        return this.instrumentation.checkMonitorHit(activityMonitor, i);
     }
 
     public Activity waitForMonitor(ActivityMonitor activityMonitor) {
-        return this.mBase.waitForMonitor(activityMonitor);
+        return this.instrumentation.waitForMonitor(activityMonitor);
     }
 
     public Activity waitForMonitorWithTimeout(ActivityMonitor activityMonitor, long j) {
-        return this.mBase.waitForMonitorWithTimeout(activityMonitor, j);
+        return this.instrumentation.waitForMonitorWithTimeout(activityMonitor, j);
     }
 
     public void removeMonitor(ActivityMonitor activityMonitor) {
-        this.mBase.removeMonitor(activityMonitor);
+        this.instrumentation.removeMonitor(activityMonitor);
     }
 
     public boolean invokeMenuActionSync(Activity activity, int i, int i2) {
-        return this.mBase.invokeMenuActionSync(activity, i, i2);
+        return this.instrumentation.invokeMenuActionSync(activity, i, i2);
     }
 
     public boolean invokeContextMenuAction(Activity activity, int i, int i2) {
-        return this.mBase.invokeContextMenuAction(activity, i, i2);
+        return this.instrumentation.invokeContextMenuAction(activity, i, i2);
     }
 
     public void sendStringSync(String str) {
-        this.mBase.sendStringSync(str);
+        this.instrumentation.sendStringSync(str);
     }
 
     public void sendKeySync(KeyEvent keyEvent) {
-        this.mBase.sendKeySync(keyEvent);
+        this.instrumentation.sendKeySync(keyEvent);
     }
 
     public void sendKeyDownUpSync(int i) {
-        this.mBase.sendKeyDownUpSync(i);
+        this.instrumentation.sendKeyDownUpSync(i);
     }
 
     public void sendCharacterSync(int i) {
-        this.mBase.sendCharacterSync(i);
+        this.instrumentation.sendCharacterSync(i);
     }
 
     public void sendPointerSync(MotionEvent motionEvent) {
-        this.mBase.sendPointerSync(motionEvent);
+        this.instrumentation.sendPointerSync(motionEvent);
     }
 
     public void sendTrackballEventSync(MotionEvent motionEvent) {
-        this.mBase.sendTrackballEventSync(motionEvent);
+        this.instrumentation.sendTrackballEventSync(motionEvent);
     }
 
     public Application newApplication(ClassLoader classLoader, String str, Context context) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-        return this.mBase.newApplication(classLoader, str, context);
+        return this.instrumentation.newApplication(classLoader, str, context);
     }
 
     public void callApplicationOnCreate(Application application) {
-        this.mBase.callApplicationOnCreate(application);
+        this.instrumentation.callApplicationOnCreate(application);
     }
 
     public void callActivityOnDestroy(Activity activity) {
-        this.mBase.callActivityOnDestroy(activity);
+        this.instrumentation.callActivityOnDestroy(activity);
     }
 
     public void callActivityOnRestoreInstanceState(Activity activity, Bundle bundle) {
-        this.mBase.callActivityOnRestoreInstanceState(activity, bundle);
+        this.instrumentation.callActivityOnRestoreInstanceState(activity, bundle);
     }
 
     public void callActivityOnPostCreate(Activity activity, Bundle bundle) {
-        this.mBase.callActivityOnPostCreate(activity, bundle);
+        this.instrumentation.callActivityOnPostCreate(activity, bundle);
     }
 
     public void callActivityOnNewIntent(Activity activity, Intent intent) {
-        this.mBase.callActivityOnNewIntent(activity, intent);
+        this.instrumentation.callActivityOnNewIntent(activity, intent);
     }
 
     public void callActivityOnStart(Activity activity) {
-        this.mBase.callActivityOnStart(activity);
+        this.instrumentation.callActivityOnStart(activity);
     }
 
     public void callActivityOnRestart(Activity activity) {
-        this.mBase.callActivityOnRestart(activity);
+        this.instrumentation.callActivityOnRestart(activity);
     }
 
     public void callActivityOnResume(Activity activity) {
-        this.mBase.callActivityOnResume(activity);
+        this.instrumentation.callActivityOnResume(activity);
     }
 
     public void callActivityOnStop(Activity activity) {
-        this.mBase.callActivityOnStop(activity);
+        this.instrumentation.callActivityOnStop(activity);
     }
 
     public void callActivityOnSaveInstanceState(Activity activity, Bundle bundle) {
-        this.mBase.callActivityOnSaveInstanceState(activity, bundle);
+        this.instrumentation.callActivityOnSaveInstanceState(activity, bundle);
     }
 
     public void callActivityOnPause(Activity activity) {
-        this.mBase.callActivityOnPause(activity);
+        this.instrumentation.callActivityOnPause(activity);
     }
 
     public void callActivityOnUserLeaving(Activity activity) {
-        this.mBase.callActivityOnUserLeaving(activity);
+        this.instrumentation.callActivityOnUserLeaving(activity);
     }
 
     @SuppressWarnings("deprecation")
     public void startAllocCounting() {
-        this.mBase.startAllocCounting();
+        this.instrumentation.startAllocCounting();
     }
 
     @SuppressWarnings("deprecation")
     public void stopAllocCounting() {
-        this.mBase.stopAllocCounting();
+        this.instrumentation.stopAllocCounting();
     }
 
     public Bundle getAllocCounts() {
-        return this.mBase.getAllocCounts();
+        return this.instrumentation.getAllocCounts();
     }
 
     public Bundle getBinderCounts() {
-        return this.mBase.getBinderCounts();
+        return this.instrumentation.getBinderCounts();
     }
 
     private interface ExecStartActivityCallback {

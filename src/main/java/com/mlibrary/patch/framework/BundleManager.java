@@ -6,12 +6,12 @@ import android.os.Environment;
 
 import com.mlibrary.patch.hack.AndroidHack;
 import com.mlibrary.patch.hack.SysHacks;
-import com.mlibrary.patch.runtime.DelegateResources;
+import com.mlibrary.patch.runtime.ResourcesHook;
 import com.mlibrary.patch.runtime.InstrumentationHook;
 import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.util.MLibraryPatchUtil;
+import com.mlibrary.patch.MLibraryPatch;
 import com.mlibrary.patch.util.SdCardUtil;
 
 import java.io.DataInputStream;
@@ -25,22 +25,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class BundleCore {
+public class BundleManager {
+    public static final String TAG = MLibraryPatch.TAG + ":BundleManager";
+
     public static final String LIB_PATH = "assets/baseres/";
-    public static final String TAG = MLibraryPatchUtil.TAG + ":BundleCore";
 
     private final Map<String, Bundle> bundles = new ConcurrentHashMap<>();
     private String storageLocation;
     private long nextBundleID = 1;
 
-    private static BundleCore instance;
+    private static BundleManager instance;
 
-    private BundleCore() {
+    private BundleManager() {
     }
 
-    public static synchronized BundleCore getInstance() {
-        if (instance == null)
-            instance = new BundleCore();
+    public static BundleManager getInstance() {
+        if (instance == null) {
+            synchronized (BundleManager.class) {
+                if (instance == null)
+                    instance = new BundleManager();
+            }
+        }
         return instance;
     }
 
@@ -61,9 +66,9 @@ public class BundleCore {
             }
         }
         try {
-            DelegateResources.newDelegateResources(RuntimeArgs.androidApplication, RuntimeArgs.delegateResources);
+            ResourcesHook.newResourcesHook(RuntimeArgs.androidApplication, RuntimeArgs.delegateResources);
         } catch (Exception e) {
-            LogUtil.e(TAG, "DelegateResources.newDelegateResources exception", e);
+            LogUtil.e(TAG, "DelegateResources.newResourcesHook exception", e);
         }
     }
 
