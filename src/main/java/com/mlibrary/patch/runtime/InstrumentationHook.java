@@ -21,7 +21,7 @@ import android.view.MotionEvent;
 
 import com.mlibrary.patch.hack.SysHacks;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MLibraryPatch;
+import com.mlibrary.patch.MDynamicLib;
 
 import java.util.List;
 
@@ -31,7 +31,7 @@ import java.util.List;
  * 挂载在系统中的Instrumentation，以拦截相应的方法
  */
 public class InstrumentationHook extends Instrumentation {
-    public static final String TAG = MLibraryPatch.TAG + ":InstrumentationHook";
+    public static final String TAG = MDynamicLib.TAG + ":InstrumentationHook";
 
     private Context context;
     private Instrumentation instrumentation;
@@ -144,7 +144,7 @@ public class InstrumentationHook extends Instrumentation {
             }
         } catch (ClassNotFoundException e) {
             //String property = Framework.getProperty("ctrip.android.bundle.welcome", "ctrip.android.view.home.CtripSplashActivity");
-            if (TextUtils.isEmpty(MLibraryPatch.defaultActivityWhileClassNotFound)) {
+            if (TextUtils.isEmpty(MDynamicLib.defaultActivityWhileClassNotFound)) {
                 throw e;
             } else {
                 List runningTasks = ((ActivityManager) this.context.getSystemService(Context.ACTIVITY_SERVICE)).getRunningTasks(1);
@@ -154,8 +154,8 @@ public class InstrumentationHook extends Instrumentation {
                     }
                 }
                 LogUtil.w(TAG, "Could not find activity class: " + str);
-                LogUtil.w(TAG, "Redirect to welcome activity: " + MLibraryPatch.defaultActivityWhileClassNotFound);
-                newActivity = this.instrumentation.newActivity(classLoader, MLibraryPatch.defaultActivityWhileClassNotFound, intent);
+                LogUtil.w(TAG, "Redirect to welcome activity: " + MDynamicLib.defaultActivityWhileClassNotFound);
+                newActivity = this.instrumentation.newActivity(classLoader, MDynamicLib.defaultActivityWhileClassNotFound, intent);
             }
         }
         return newActivity;

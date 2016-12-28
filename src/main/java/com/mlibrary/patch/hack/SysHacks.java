@@ -14,7 +14,7 @@ import com.mlibrary.patch.hack.Hack.HackedClass;
 import com.mlibrary.patch.hack.Hack.HackedField;
 import com.mlibrary.patch.hack.Hack.HackedMethod;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MLibraryPatch;
+import com.mlibrary.patch.MDynamicLib;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -24,7 +24,7 @@ import java.util.Map;
  * Hack 系统的功能：包括类加载机制，资源加载，Context等
  */
 public class SysHacks extends Hack.HackDeclaration implements Hack.AssertionFailureHandler {
-    public static final String TAG = MLibraryPatch.TAG + ":SysHacks";
+    public static final String TAG = MDynamicLib.TAG + ":SysHacks";
     public static HackedClass<Object> ActivityThread;
     public static HackedMethod ActivityThread_currentActivityThread;
     public static HackedField<Object, ArrayList<android.app.Application>> ActivityThread_mAllApplications;

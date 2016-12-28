@@ -3,7 +3,7 @@ package com.mlibrary.patch.framework;
 import com.mlibrary.patch.framework.storage.BundleArchive;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MLibraryPatch;
+import com.mlibrary.patch.MDynamicLib;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class Bundle {
-    public static final String TAG = MLibraryPatch.TAG + ":Bundle";
+    public static final String TAG = MDynamicLib.TAG + ":Bundle";
 
     private final File bundleDir;
     private final String location;
@@ -72,12 +72,12 @@ public class Bundle {
         this.archive.newRevision(this.bundleDir, inputStream);
     }
 
-    synchronized void optDexFile() throws Exception {
+    synchronized void installBundleDexs() throws Exception {
         if (!isOptimized) {
             long startTime = System.currentTimeMillis();
-            getArchive().optimizeDexFile();
+            getArchive().installBundleDex();
             isOptimized = true;
-            LogUtil.d(TAG, "执行：" + getLocation() + ",时间-----" + String.valueOf(System.currentTimeMillis() - startTime));
+            LogUtil.d(TAG, "installBundleDex：" + getLocation() + ", 耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");
         }
     }
 

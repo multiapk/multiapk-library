@@ -7,7 +7,7 @@ import com.mlibrary.patch.framework.BundleDexInstaller;
 import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MLibraryPatch;
+import com.mlibrary.patch.MDynamicLib;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -27,22 +27,22 @@ import java.util.zip.ZipFile;
  * 采用PathClassLoader 加载 dex文件，并opt释放优化后的dex
  */
 class BundleArchiveRevision {
-    private static final String TAG = MLibraryPatch.TAG + ":BundleArchiveRevision";
+    private static final String TAG = MDynamicLib.TAG + ":BundleArchiveRevision";
     private static final String BUNDLE_FILE_NAME = "bundle.zip";
     private static final String BUNDLE_DEX_FILE = "bundle.dex";
     private static final String FILE_PROTOCOL = "file:";
 
     private final long revisionNum;
-    private File revisionDir;
+    private File revisioDir;
     private File bundleFile;
     private String revisionLocation;
 
     BundleArchiveRevision(long revisionNumber, File file, InputStream inputStream) throws IOException {
         this.revisionNum = revisionNumber;
-        this.revisionDir = file;
-        if (!this.revisionDir.exists())
+        this.revisioDir = file;
+        if (!this.revisioDir.exists())
             //noinspection ResultOfMethodCallIgnored
-            this.revisionDir.mkdirs();
+            this.revisioDir.mkdirs();
         this.revisionLocation = FILE_PROTOCOL;
         this.bundleFile = new File(file, BUNDLE_FILE_NAME);
         FileUtil.copyInputStreamToFile(inputStream, this.bundleFile);
@@ -56,10 +56,10 @@ class BundleArchiveRevision {
             this.revisionLocation = dataInputStream.readUTF();
             dataInputStream.close();
             this.revisionNum = revisionNumber;
-            this.revisionDir = file;
-            if (!this.revisionDir.exists())
+            this.revisioDir = file;
+            if (!this.revisioDir.exists())
                 //noinspection ResultOfMethodCallIgnored
-                this.revisionDir.mkdirs();
+                this.revisioDir.mkdirs();
             this.bundleFile = new File(file, BUNDLE_FILE_NAME);
             return;
         }
@@ -67,7 +67,7 @@ class BundleArchiveRevision {
     }
 
     private void updateMetaData() throws IOException {
-        File file = new File(this.revisionDir, "meta");
+        File file = new File(this.revisioDir, "meta");
         DataOutputStream dataOutputStream = null;
         try {
             if (!file.getParentFile().exists())
@@ -92,7 +92,7 @@ class BundleArchiveRevision {
     }
 
     File getRevisionDir() {
-        return this.revisionDir;
+        return this.revisioDir;
     }
 
     File getRevisionFile() {
@@ -100,7 +100,7 @@ class BundleArchiveRevision {
     }
 
     boolean isDexOptimized() {
-        return new File(this.revisionDir, BUNDLE_DEX_FILE).exists();
+        return new File(this.revisioDir, BUNDLE_DEX_FILE).exists();
     }
 
     boolean isBundleInstalled() {
@@ -124,10 +124,10 @@ class BundleArchiveRevision {
         return false;
     }
 
-    void optimizeDexFile() throws Exception {
-        List<File> files = new ArrayList<>();
+    void installBundleDex() throws Exception {
+        List<File> files = new ArrayList<>();//additionalClassPathEntries
         files.add(this.bundleFile);
-        BundleDexInstaller.installBundleDexs(RuntimeArgs.androidApplication.getClassLoader(), revisionDir, files, false);
+        BundleDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), revisioDir, files, false);
     }
 
     InputStream openAssetInputStream(String fileName) throws IOException {

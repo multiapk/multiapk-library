@@ -12,7 +12,7 @@ public class MApplication extends Application {
             MultiDex.install(this);
         super.onCreate();
         if (BuildConfig.solidMode)
-            MLibraryPatch.init(this);
+            MDynamicLib.init(this);
     }
 }
 ```

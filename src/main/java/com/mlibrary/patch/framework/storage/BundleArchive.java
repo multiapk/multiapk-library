@@ -59,8 +59,8 @@ public class BundleArchive {
         return this.currentRevision.getRevisionFile();
     }
 
-    public void optimizeDexFile() throws Exception {
-        this.currentRevision.optimizeDexFile();
+    public void installBundleDex() throws Exception {
+        this.currentRevision.installBundleDex();
     }
 
     public void purge() throws Exception {

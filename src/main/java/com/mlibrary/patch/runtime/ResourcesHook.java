@@ -11,7 +11,7 @@ import com.mlibrary.patch.framework.BundleManager;
 import com.mlibrary.patch.hack.AndroidHack;
 import com.mlibrary.patch.hack.SysHacks;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MLibraryPatch;
+import com.mlibrary.patch.MDynamicLib;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ import java.util.List;
  * 挂载载系统资源中，处理框架资源加载
  */
 public class ResourcesHook extends Resources {
-    public static final String TAG = MLibraryPatch.TAG + ":ResourcesHook";
+    public static final String TAG = MDynamicLib.TAG + ":ResourcesHook";
 
     @SuppressWarnings("deprecation")
     private ResourcesHook(AssetManager assets, Resources resources) {
@@ -39,7 +39,7 @@ public class ResourcesHook extends Resources {
                 arrayList.add((bundle).getArchive().getArchiveFile().getAbsolutePath());
             AssetManager assetManager = AssetManager.class.newInstance();
             for (String str : arrayList)
-                SysHacks.AssetManager_addAssetPath.invoke(assetManager, str);
+                SysHacks.AssetManager_addAssetPath.invoke(assetManager, str);//addAssetPath
             //处理小米UI资源
             if (resources == null || !resources.getClass().getName().equals("android.content.res.MiuiResources")) {
                 delegateResources = new ResourcesHook(assetManager, resources);
@@ -50,14 +50,17 @@ public class ResourcesHook extends Resources {
             }
             RuntimeArgs.delegateResources = delegateResources;
             AndroidHack.injectResources(application, delegateResources);
+
+            //just for log
             StringBuilder stringBuffer = new StringBuilder();
-            stringBuffer.append("newResourcesHook [");
+            stringBuffer.append("newResourcesHook:addAssetPath [\n");
             for (int i = 0; i < arrayList.size(); i++) {
+                stringBuffer.append("\t");
                 if (i > 0)
-                    stringBuffer.append(",");
+                    stringBuffer.append(",\n");
                 stringBuffer.append(arrayList.get(i));
             }
-            stringBuffer.append("]");
+            stringBuffer.append("\n]");
             LogUtil.d(TAG, stringBuffer.toString());
         }
     }

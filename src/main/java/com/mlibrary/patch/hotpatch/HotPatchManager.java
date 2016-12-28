@@ -5,7 +5,7 @@ import android.text.TextUtils;
 import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MLibraryPatch;
+import com.mlibrary.patch.MDynamicLib;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +17,7 @@ import java.util.TreeMap;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class HotPatchManager {
-    public static final String TAG = MLibraryPatch.TAG + ":HotPatchItem";
+    public static final String TAG = MDynamicLib.TAG + ":HotPatchItem";
     private static volatile HotPatchManager instance;
     private static SortedMap<Integer, HotPatchItem> sortedMap;
 
@@ -45,10 +45,8 @@ public class HotPatchManager {
         return instance;
     }
 
-    /**
-     * 运行补丁
-     */
-    public void run() {
+    public void installHotFixDexs() {
+        LogUtil.w(TAG, "installHotFixDexs start");
         try {
             initHotPatches();
             if (!sortedMap.isEmpty()) {
@@ -56,7 +54,7 @@ public class HotPatchManager {
                     HotPatchItem item = entry.getValue();
                     if (item != null && item.isPatchInstalled()) {
                         try {
-                            item.optDexFile();
+                            item.installBundleDex();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -64,8 +62,9 @@ public class HotPatchManager {
                 }
             }
         } catch (Throwable e) {
-            LogUtil.e(TAG, "Failed to run pacth", e);
+            LogUtil.e(TAG, "installHotFixDexs failure !", e);
         }
+        LogUtil.w(TAG, "installHotFixDexs end");
     }
 
     /**
@@ -95,7 +94,7 @@ public class HotPatchManager {
 
                 if (hotPatchItem.isPatchInstalled()) {
                     try {
-                        hotPatchItem.optHotFixDexFile();
+                        hotPatchItem.installHotFixDex();
                     } catch (Exception e) {
                         e.printStackTrace();
                         ret = false;
@@ -111,6 +110,7 @@ public class HotPatchManager {
     }
 
     public void purge() {
+        LogUtil.d(TAG, "purge");
         if (patchDir.exists())
             FileUtil.deleteDirectory(patchDir);
     }

@@ -6,7 +6,7 @@ import android.content.res.AssetManager;
 import android.content.res.Resources;
 
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MLibraryPatch;
+import com.mlibrary.patch.MDynamicLib;
 
 
 /**
@@ -14,7 +14,7 @@ import com.mlibrary.patch.MLibraryPatch;
  * Android Context Hook 挂载载系统的Context中，拦截相应的方法
  */
 public class ContextWrapperHook extends ContextWrapper {
-    public static final String TAG = MLibraryPatch.TAG + ":" + ContextWrapperHook.class.getName();
+    public static final String TAG = MDynamicLib.TAG + ":" + ContextWrapperHook.class.getName();
 
     public ContextWrapperHook(Context context) {
         super(context);

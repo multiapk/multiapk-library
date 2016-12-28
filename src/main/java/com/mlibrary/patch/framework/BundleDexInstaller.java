@@ -22,7 +22,7 @@ public class BundleDexInstaller {
     private BundleDexInstaller() {
     }
 
-    public static void installBundleDexs(ClassLoader loader, File dexDir, List<File> files, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException, InvocationTargetException, NoSuchMethodException, IOException {
+    public static void installBundleDex(ClassLoader loader, File dexDir, List<File> files, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException, InvocationTargetException, NoSuchMethodException, IOException {
         if (!files.isEmpty()) {
             if (Build.VERSION.SDK_INT >= 23) {
                 V23.install(loader, files, dexDir, isHotFix);

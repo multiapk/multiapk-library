@@ -4,7 +4,7 @@ import com.mlibrary.patch.framework.BundleDexInstaller;
 import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MLibraryPatch;
+import com.mlibrary.patch.MDynamicLib;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,7 +16,7 @@ import java.util.zip.ZipFile;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 class HotPatchItem {
-    public static final String TAG = MLibraryPatch.TAG + ":HotPatchItem";
+    public static final String TAG = MDynamicLib.TAG + ":HotPatchItem";
     private static final String HOTPATCH_FILE_NAME = "hotfix.zip";
 
     private File hotFixFile;
@@ -65,16 +65,16 @@ class HotPatchItem {
         return false;
     }
 
-    void optDexFile() throws Exception {
+    void installBundleDex() throws Exception {
         List<File> files = new ArrayList<>();
         files.add(this.hotFixFile);
-        BundleDexInstaller.installBundleDexs(RuntimeArgs.androidApplication.getClassLoader(), storageDir, files, false);
+        BundleDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), storageDir, files, false);
     }
 
-    void optHotFixDexFile() throws Exception {
+    void installHotFixDex() throws Exception {
         List<File> files = new ArrayList<>();
         files.add(this.hotFixFile);
-        BundleDexInstaller.installBundleDexs(RuntimeArgs.androidApplication.getClassLoader(), storageDir, files, true);
+        BundleDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), storageDir, files, true);
     }
 
     void purge() {
