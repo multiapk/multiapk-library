@@ -18,6 +18,10 @@ android {
     }
 }
 
+dependencies {
+    compile 'com.mlibrary:mbspatchlib:0.0.1'
+}
+
 //https://github.com/novoda/bintray-release/wiki
 //gradle  bintrayUpload
 publish {

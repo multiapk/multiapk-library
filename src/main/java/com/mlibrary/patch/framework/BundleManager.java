@@ -76,7 +76,7 @@ public class BundleManager {
                 baseDir = externalFile.getAbsolutePath();
             if (baseDir == null)
                 baseDir = RuntimeArgs.androidApplication.getFilesDir().getAbsolutePath();
-            storageLocation = baseDir + File.separatorChar + "storage" + File.separatorChar;
+            storageLocation = baseDir + File.separatorChar + "bundles" + File.separatorChar;
             LogUtil.w(TAG, "bundle location:" + storageLocation);
             //init storageLocation end
 
@@ -132,7 +132,12 @@ public class BundleManager {
         if (file.exists())
             FileUtil.deleteDirectory(file);
         file.mkdirs();
-        saveToProfile();
+
+        Bundle[] bundleArray = getBundles().toArray(new Bundle[bundles.size()]);
+        for (Bundle bundle : bundleArray)
+            bundle.updateMetadata();
+        saveToMetadata(nextBundleID);
+
         LogUtil.w(TAG, "cleanLocal end");
     }
 
@@ -195,12 +200,6 @@ public class BundleManager {
         LogUtil.w(TAG, "copyBundles:end:allBundles:耗时: " + (System.currentTimeMillis() - startTime) + "ms \n" + getInstance().getBundles().toString());
     }
 
-    private boolean isLocalBundleExists(String packageName) {
-        boolean isLocalBundleExists = getBundle(packageName) != null;
-        LogUtil.d(TAG, packageName + " isLocalBundleExists == " + isLocalBundleExists);
-        return isLocalBundleExists;
-    }
-
     public Bundle copyToLocal(String location, InputStream inputStream) {
         LogUtil.d(TAG, "copyToLocal start: " + location);
         long startTime = System.currentTimeMillis();
@@ -209,16 +208,26 @@ public class BundleManager {
             bundle = getBundle(location);
             if (bundle != null)
                 return bundle;
-            long bundleID = nextBundleID;
-            nextBundleID = 1 + bundleID;
-            bundle = new Bundle(new File(storageLocation, String.valueOf(bundleID)), location, bundleID, inputStream);
+            //临时修改本地存储路径名 //todo
+            //bundle = new Bundle(new File(storageLocation, String.valueOf(nextBundleID)), location, nextBundleID, inputStream);
+            bundle = new Bundle(new File(storageLocation, location), location, nextBundleID, inputStream);
+
+            //save start
             bundles.put(bundle.getLocation(), bundle);
-            saveToMetadata();
+            nextBundleID++;
+            saveToMetadata(nextBundleID);
+            //save end
         } catch (Exception e) {
             LogUtil.e(TAG, "copyToLocal failure: " + location, e);
         }
         LogUtil.d(TAG, "copyToLocal end: 耗时: " + (System.currentTimeMillis() - startTime) + "ms ");
         return bundle;
+    }
+
+    private boolean isLocalBundleExists(String packageName) {
+        boolean isLocalBundleExists = getBundle(packageName) != null;
+        LogUtil.d(TAG, packageName + " isLocalBundleExists == " + isLocalBundleExists);
+        return isLocalBundleExists;
     }
 
     public void updateBundle(String location, InputStream inputStream) throws Exception {
@@ -248,25 +257,7 @@ public class BundleManager {
         return bundles.get(str);
     }
 
-    public Bundle getBundle(long id) {
-        synchronized (bundles) {
-            for (Bundle bundle : bundles.values())
-                if (bundle.getBundleId() == id)
-                    return bundle;
-            return null;
-        }
-    }
-
-    private void saveToProfile() {
-        LogUtil.d(TAG, "saveToProfile start");
-        Bundle[] bundleArray = getBundles().toArray(new Bundle[bundles.size()]);
-        for (Bundle bundle : bundleArray)
-            bundle.updateMetadata();
-        saveToMetadata();
-        LogUtil.d(TAG, "saveToProfile end");
-    }
-
-    private void saveToMetadata() {
+    private void saveToMetadata(long nextBundleID) {
         LogUtil.d(TAG, "saveToMetadata:start:" + storageLocation + "meta" + ", save nextBundleID==" + nextBundleID);
         try {
             DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(new File(storageLocation, "meta")));
