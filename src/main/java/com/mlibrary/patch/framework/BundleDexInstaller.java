@@ -111,8 +111,7 @@ public class BundleDexInstaller {
         synchronized (BundleDexInstaller.class) {
             Field jlrField = findField(instance, fieldName);
             Object[] original = (Object[]) jlrField.get(instance);
-            Object[] combined = (Object[]) Array.newInstance(
-                    original.getClass().getComponentType(), original.length + extraElements.length);
+            Object[] combined = (Object[]) Array.newInstance(original.getClass().getComponentType(), original.length + extraElements.length);
             if (isHotFix) {
                 System.arraycopy(extraElements, 0, combined, 0, extraElements.length);
                 System.arraycopy(original, 0, combined, extraElements.length, original.length);

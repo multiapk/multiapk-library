@@ -1,106 +1,108 @@
 package com.mlibrary.patch.framework;
 
-import com.mlibrary.patch.framework.storage.BundleArchive;
+import android.text.TextUtils;
+import android.util.Log;
+
+import com.mlibrary.patch.MDynamicLib;
+import com.mlibrary.patch.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MDynamicLib;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class Bundle {
     public static final String TAG = MDynamicLib.TAG + ":Bundle";
-
-    private final File bundleDir;
-    private final String location;
-    private BundleArchive archive;
-    private volatile boolean isBundleDexInstalled;
+    private volatile boolean isBundleDexInstalled = false;
+    public static final String SUFFIX = BundleManager.BUNDLE_SUFFIX;
+    private File bundleFile = null;
+    private File bundleDir = null;
+    private String packageName = null;
 
     Bundle(File bundleDir) throws Exception {
         this.bundleDir = bundleDir;
-        this.isBundleDexInstalled = false;
-        DataInputStream dataInputStream = new DataInputStream(new FileInputStream(new File(bundleDir, "meta")));
-        this.location = dataInputStream.readUTF();
-        dataInputStream.close();
-        this.archive = new BundleArchive(bundleDir);
-    }
-
-    Bundle(File bundleDir, String location, InputStream inputStream) throws Exception {
-        this.bundleDir = bundleDir;
-        this.isBundleDexInstalled = false;
-        this.location = location;
-        if (inputStream == null) {
-            throw new NullPointerException("inputStream is null : " + location);
-        } else {
-            try {
-                this.archive = new BundleArchive(bundleDir, inputStream);
-            } catch (Exception e) {
-                FileUtil.deleteDirectory(bundleDir);
-                throw new IOException("can not install bundle " + location, e);
+        if (bundleDir.exists()) {
+            File[] localFiles = bundleDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.endsWith(SUFFIX);
+                }
+            });
+            if (localFiles != null && localFiles.length > 0) {
+                bundleFile = localFiles[0];
+                packageName = bundleFile.getName().replaceAll(SUFFIX, "");
             }
         }
-        this.updateMetadata();
+        if (bundleFile == null || !bundleFile.exists())
+            throw new IllegalStateException("local bundle not exists! " + bundleDir);
+        Log.w(TAG, "bundleFilePath:" + bundleFile.getPath() + ", bundleFileName:" + bundleFile.getName() + ", packageName:" + packageName);
+    }
+
+    Bundle(File bundleDir, String packageName, InputStream inputStream) throws Exception {
+        if (bundleDir == null || TextUtils.isEmpty(packageName) || inputStream == null)
+            throw new IllegalArgumentException("bundleDir:" + bundleDir + ", packageName:" + packageName + ", inputStream==null?" + (inputStream == null));
+
+        this.bundleDir = bundleDir;
+        if (!bundleDir.exists())
+            bundleDir.mkdirs();
+        this.packageName = packageName;
+        this.bundleFile = new File(bundleDir, packageName + SUFFIX);
+
+        try {
+            FileUtil.copyInputStreamToFile(inputStream, this.bundleFile);
+        } catch (Exception e) {
+            FileUtil.deleteDirectory(bundleDir);
+            throw new IOException("can not install bundle " + packageName, e);
+        }
+        Log.w(TAG, "bundleFilePath:" + bundleFile.getPath() + ", bundleFileName:" + bundleFile.getName() + ", packageName:" + packageName);
+    }
+
+    public void installBundleDex() throws Exception {
+        long startTime = System.currentTimeMillis();
+        if (!isBundleDexInstalled) {
+            //检测是否有热更新的合成包
+            File syntheticBundleFile = BundleHotPatch.getSyntheticBundle(getPackageName());
+            if (syntheticBundleFile.exists()) {
+                this.bundleDir = BundleHotPatch.getHotPatchBaseDir(packageName);
+                this.bundleFile = syntheticBundleFile;
+                Log.w(TAG, "发现合成包:" + bundleFile.getPath());
+            }
+
+            Log.w(TAG, "bundleDir:" + bundleDir.getPath());
+            Log.w(TAG, "bundleFile:" + bundleFile.getPath());
+            Log.w(TAG, "isHotFix:" + false);
+
+            List<File> bundleList = new ArrayList<>();
+            bundleList.add(this.bundleFile);
+            BundleDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), bundleDir, bundleList, false);
+            isBundleDexInstalled = true;
+        }
+        LogUtil.v(TAG, "installBundleDex：" + getPackageName() + ", 耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");
+    }
+
+    public void delete() throws Exception {
+        FileUtil.deleteDirectory(bundleDir);
     }
 
     public boolean isBundleDexInstalled() {
         return this.isBundleDexInstalled;
     }
 
-    public BundleArchive getArchive() {
-        return this.archive;
+    public String getBundleFilePath() {
+        return this.bundleFile.getPath();
     }
 
-    public String getLocation() {
-        return this.location;
-    }
-
-    public synchronized void update(InputStream inputStream) throws IOException {
-        this.archive.newRevision(this.bundleDir, inputStream);
-    }
-
-    synchronized void installBundleDexs() throws Exception {
-        if (!isBundleDexInstalled) {
-            long startTime = System.currentTimeMillis();
-            getArchive().installBundleDex();
-            isBundleDexInstalled = true;
-            LogUtil.v(TAG, "installBundleDex：" + getLocation() + ", 耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");
-        }
-    }
-
-    public synchronized void purge() throws Exception {
-        getArchive().clean();
-    }
-
-    void updateMetadata() {
-        LogUtil.w(TAG, "updateMetadata start");
-        File file = new File(this.bundleDir, "meta");
-        DataOutputStream dataOutputStream;
-        try {
-            if (!file.getParentFile().exists())
-                file.getParentFile().mkdirs();
-            FileOutputStream fileOutputStream = new FileOutputStream(file);
-            dataOutputStream = new DataOutputStream(fileOutputStream);
-            dataOutputStream.writeUTF(this.location);
-            dataOutputStream.flush();
-            fileOutputStream.getFD().sync();
-            try {
-                dataOutputStream.close();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        } catch (Throwable e) {
-            LogUtil.e(TAG, "could not save meta data " + file.getAbsolutePath(), e);
-        }
-        LogUtil.w(TAG, "updateMetadata end");
+    public String getPackageName() {
+        LogUtil.d(TAG, "getPackageName:" + packageName);
+        return this.packageName;
     }
 
     public String toString() {
-        return "\nbundle: " + this.location;
+        return "\nbundle: " + bundleDir + File.separator + packageName + SUFFIX;
     }
 }

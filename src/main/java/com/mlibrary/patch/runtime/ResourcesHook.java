@@ -36,7 +36,7 @@ public class ResourcesHook extends Resources {
             List<String> arrayList = new ArrayList<>();
             arrayList.add(application.getApplicationInfo().sourceDir);
             for (Bundle bundle : bundles)
-                arrayList.add((bundle).getArchive().getArchiveFile().getAbsolutePath());
+                arrayList.add((bundle).getBundleFilePath());
             AssetManager assetManager = AssetManager.class.newInstance();
             for (String str : arrayList)
                 SysHacks.AssetManager_addAssetPath.invoke(assetManager, str);//addAssetPath

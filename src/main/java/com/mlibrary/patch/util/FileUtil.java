@@ -34,6 +34,7 @@ public class FileUtil {
         FileChannel fileChannel = null;
         FileOutputStream fileOutputStream = null;
         try {
+            LogUtil.d(TAG, "copyInputStreamToFile:" + file.getPath());
             fileOutputStream = new FileOutputStream(file);
             fileChannel = fileOutputStream.getChannel();
             byte[] buffer = new byte[1024];
