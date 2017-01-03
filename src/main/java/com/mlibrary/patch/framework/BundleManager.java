@@ -16,11 +16,7 @@ import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.util.PreferencesUtil;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -38,7 +34,6 @@ public class BundleManager {
 
     private final Map<String, Bundle> bundles = new ConcurrentHashMap<>();
     private String storageLocation;
-    private long nextBundleID = 1;
 
     private static BundleManager instance = null;
 
@@ -123,7 +118,7 @@ public class BundleManager {
         //校验local所有数据正确性，如果不正确 cleanLocal，重新 copyToLocal
         //验证meta是否存在
         //验证bundles md5，最好在md5正确的bundle.zip里重新释放bundle.dex,确保万无一失，防止被恶意修改
-        return isLocalMetaFileExists();
+        return true;
     }
 
     public void cleanLocal() {
@@ -132,12 +127,8 @@ public class BundleManager {
         if (file.exists())
             FileUtil.deleteDirectory(file);
         file.mkdirs();
-
-        Bundle[] bundleArray = getBundles().toArray(new Bundle[bundles.size()]);
-        for (Bundle bundle : bundleArray)
+        for (Bundle bundle : getBundles())
             bundle.updateMetadata();
-        saveToMetadata(nextBundleID);
-
         LogUtil.w(TAG, "cleanLocal end");
     }
 
@@ -210,12 +201,10 @@ public class BundleManager {
                 return bundle;
             //临时修改本地存储路径名 //todo
             //bundle = new Bundle(new File(storageLocation, String.valueOf(nextBundleID)), location, nextBundleID, inputStream);
-            bundle = new Bundle(new File(storageLocation, location), location, nextBundleID, inputStream);
+            bundle = new Bundle(new File(storageLocation, location), location, inputStream);
 
             //save start
             bundles.put(bundle.getLocation(), bundle);
-            nextBundleID++;
-            saveToMetadata(nextBundleID);
             //save end
         } catch (Exception e) {
             LogUtil.e(TAG, "copyToLocal failure: " + location, e);
@@ -257,22 +246,6 @@ public class BundleManager {
         return bundles.get(str);
     }
 
-    private void saveToMetadata(long nextBundleID) {
-        LogUtil.d(TAG, "saveToMetadata:start:" + storageLocation + "meta" + ", save nextBundleID==" + nextBundleID);
-        try {
-            DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(new File(storageLocation, "meta")));
-            dataOutputStream.writeLong(nextBundleID);
-            dataOutputStream.flush();
-            dataOutputStream.close();
-        } catch (Throwable e) {
-            LogUtil.e(TAG, "could not save meta data.", e);
-        }
-        LogUtil.d(TAG, "saveToMetadata:end");
-    }
-
-    private boolean isLocalMetaFileExists() {
-        return getLocalMetaFile().exists();
-    }
 
     private File getLocalMetaFile() {
         return new File(storageLocation, "meta");
@@ -281,31 +254,20 @@ public class BundleManager {
     private int restoreFromProfile() {
         LogUtil.w(TAG, "restoreFromProfile start");
         try {
-            File localMetaFile = getLocalMetaFile();
-            if (localMetaFile.exists()) {
-                DataInputStream dataInputStream = new DataInputStream(new FileInputStream(localMetaFile));
-                nextBundleID = dataInputStream.readLong();
-                dataInputStream.close();
-                File file2 = new File(storageLocation);
-                File[] listFiles = file2.listFiles();
-                int i = 0;
-                while (i < listFiles.length) {
-                    if (listFiles[i].isDirectory() && new File(listFiles[i], "meta").exists()) {
-                        try {
-                            Bundle bundle = new Bundle(listFiles[i]);
-                            bundles.put(bundle.getLocation(), bundle);
-                            LogUtil.v(TAG, "success to restore bundle: " + bundle.getLocation());
-                        } catch (Exception e) {
-                            LogUtil.e(TAG, e.getMessage(), e.getCause());
-                        }
+            File[] bundleDirs = new File(storageLocation).listFiles();
+            if (bundleDirs != null) {
+                for (File bundleDir : bundleDirs) {
+                    try {
+                        Bundle bundle = new Bundle(bundleDir);
+                        bundles.put(bundle.getLocation(), bundle);
+                        LogUtil.v(TAG, "success to restore bundle: " + bundle.getLocation());
+                    } catch (Exception e) {
+                        LogUtil.e(TAG, "failure to restore bundle: " + bundleDir, e);
                     }
-                    i++;
                 }
-                LogUtil.w(TAG, "restoreFromProfile end , return 1(成功)");
-                return 1;
             }
-            LogUtil.w(TAG, "restoreFromProfile end , return -1(meta不存在)");
-            return -1;
+            LogUtil.w(TAG, "restoreFromProfile end , return 1(成功)");
+            return 1;
         } catch (Exception e) {
             LogUtil.e(TAG, "restoreFromProfile end , return 0(异常)", e);
             return 0;
@@ -320,6 +282,7 @@ public class BundleManager {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        LogUtil.w(TAG, "[get] currentBundleKey==" + bundleKey);
         return bundleKey;
     }
 
@@ -331,6 +294,8 @@ public class BundleManager {
     }
 
     public String getLastBundleKey(Application application) {
-        return PreferencesUtil.getInstance(application).getString(KEY_LAST_BUNDLE);
+        String lastBundleKey = PreferencesUtil.getInstance(application).getString(KEY_LAST_BUNDLE);
+        LogUtil.w(TAG, "[get] lastBundleKey==" + lastBundleKey);
+        return lastBundleKey;
     }
 }

@@ -1,6 +1,8 @@
 package com.mlibrary.patch.util;
 
 
+import com.mlibrary.patch.MDynamicLib;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -9,21 +11,22 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class FileUtil {
-    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private static final String TAG = MDynamicLib.TAG + ":FileUtil";
+
     public static void deleteDirectory(File file) {
-        if (file != null) {
-            File[] listFiles = file.listFiles();
-            if (listFiles != null) {
-                for (File listFile : listFiles) {
-                    if (listFile != null) {
-                        if (listFile.isDirectory())
-                            deleteDirectory(listFile);
-                        else
-                            listFile.delete();
-                    }
+        try {
+            if (file != null) {
+                File[] childFiles = file.listFiles();
+                if (file.isDirectory() && childFiles != null && childFiles.length > 0) {
+                    for (File childFile : childFiles)
+                        deleteDirectory(childFile);
                 }
+                //noinspection ResultOfMethodCallIgnored
                 file.delete();
+                LogUtil.d(TAG, file.getPath() + " is deleted !");
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

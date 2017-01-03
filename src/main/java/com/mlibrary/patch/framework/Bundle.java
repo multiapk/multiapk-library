@@ -19,7 +19,6 @@ public class Bundle {
 
     private final File bundleDir;
     private final String location;
-    private final long bundleID;
     private BundleArchive archive;
     private volatile boolean isBundleDexInstalled;
 
@@ -27,16 +26,14 @@ public class Bundle {
         this.bundleDir = bundleDir;
         this.isBundleDexInstalled = false;
         DataInputStream dataInputStream = new DataInputStream(new FileInputStream(new File(bundleDir, "meta")));
-        this.bundleID = dataInputStream.readLong();
         this.location = dataInputStream.readUTF();
         dataInputStream.close();
         this.archive = new BundleArchive(bundleDir);
     }
 
-    Bundle(File bundleDir, String location, long bundleID, InputStream inputStream) throws Exception {
+    Bundle(File bundleDir, String location, InputStream inputStream) throws Exception {
         this.bundleDir = bundleDir;
         this.isBundleDexInstalled = false;
-        this.bundleID = bundleID;
         this.location = location;
         if (inputStream == null) {
             throw new NullPointerException("inputStream is null : " + location);
@@ -57,10 +54,6 @@ public class Bundle {
 
     public BundleArchive getArchive() {
         return this.archive;
-    }
-
-    public long getBundleId() {
-        return this.bundleID;
     }
 
     public String getLocation() {
@@ -85,6 +78,7 @@ public class Bundle {
     }
 
     void updateMetadata() {
+        LogUtil.w(TAG, "updateMetadata start");
         File file = new File(this.bundleDir, "meta");
         DataOutputStream dataOutputStream;
         try {
@@ -92,7 +86,6 @@ public class Bundle {
                 file.getParentFile().mkdirs();
             FileOutputStream fileOutputStream = new FileOutputStream(file);
             dataOutputStream = new DataOutputStream(fileOutputStream);
-            dataOutputStream.writeLong(this.bundleID);
             dataOutputStream.writeUTF(this.location);
             dataOutputStream.flush();
             fileOutputStream.getFD().sync();
@@ -104,9 +97,10 @@ public class Bundle {
         } catch (Throwable e) {
             LogUtil.e(TAG, "could not save meta data " + file.getAbsolutePath(), e);
         }
+        LogUtil.w(TAG, "updateMetadata end");
     }
 
     public String toString() {
-        return "\nbundle [bundleID==" + this.bundleID + "]: " + this.location;
+        return "\nbundle: " + this.location;
     }
 }
