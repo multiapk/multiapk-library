@@ -1,4 +1,4 @@
-package com.mlibrary.patch.framework;
+package com.mlibrary.patch.bundle;
 
 import android.app.Application;
 import android.content.pm.PackageInfo;
@@ -7,12 +7,11 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.mlibrary.patch.MDynamicLib;
-import com.mlibrary.patch.hack.AndroidHack;
-import com.mlibrary.patch.hack.SysHacks;
-import com.mlibrary.patch.hotpatch.HotPatchManager;
-import com.mlibrary.patch.runtime.InstrumentationHook;
-import com.mlibrary.patch.runtime.ResourcesHook;
-import com.mlibrary.patch.runtime.RuntimeArgs;
+import com.mlibrary.patch.base.hack.AndroidHack;
+import com.mlibrary.patch.base.hack.SysHacks;
+import com.mlibrary.patch.base.runtime.InstrumentationHook;
+import com.mlibrary.patch.base.runtime.ResourcesHook;
+import com.mlibrary.patch.base.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.util.PreferencesUtil;
@@ -76,7 +75,7 @@ public class BundleManager {
 
             checkStatus(application);
         } catch (Exception e) {
-            e.printStackTrace();
+            LogUtil.e(TAG, "******** mdynamiclib init failure ************************************", e);
         } finally {
             LogUtil.w(TAG, "======================================================================");
             LogUtil.w(TAG, "******** mdynamiclib init end [耗时: " + (System.currentTimeMillis() - startTime) + "ms]");
@@ -95,9 +94,8 @@ public class BundleManager {
                 @Override
                 public void run() {
                     LogUtil.w(TAG, "checkStatus: start new thread to reCopyInstall bundles");
-                    HotPatchManager.getInstance().delete();
                     deleteAllBundlesIfExists();
-                    copyBundles(application);
+                    copyBundlesToLocalFromAssets(application);
                     installBundleDexs();
                     LogUtil.e(TAG, "checkStatus: end : 耗时: " + (System.currentTimeMillis() - startTime) + "ms");
                     LogUtil.e(TAG, "<<<<--------------------------------------------------------------<<<<");
@@ -106,7 +104,6 @@ public class BundleManager {
         } else {
             LogUtil.d(TAG, "checkStatus: currentBundleKey == lastBundleKey , restore from local hotfix and bundles, isLocalBundlesValid==true");
             loadBundlesFromLocal();
-            HotPatchManager.getInstance().installHotFixDexs();
             installBundleDexs();
             LogUtil.e(TAG, "checkStatus: end : 耗时: " + (System.currentTimeMillis() - startTime) + "ms");
             LogUtil.e(TAG, "<<<<--------------------------------------------------------------<<<<");
@@ -159,23 +156,33 @@ public class BundleManager {
         return arrayList;
     }
 
-    public void copyBundles(Application application) {
-        LogUtil.w(TAG, "copyBundles:start:allBundles:\n" + getInstance().getBundles().toString());
+    public void copyBundlesToLocalFromAssets(Application application) {
+        LogUtil.w(TAG, "start:allBundles:\n" + getInstance().getBundles().toString());
         long startTime = System.currentTimeMillis();
         ZipFile zipFile = null;
         try {
             zipFile = new ZipFile(application.getApplicationInfo().sourceDir);
-            LogUtil.d(TAG, "copyBundles:sourceDir" + application.getApplicationInfo().sourceDir);
+            LogUtil.d(TAG, "sourceDir" + application.getApplicationInfo().sourceDir);
             List<String> bundleList = getBundleList(zipFile, BUNDLE_LIB_PATH, BUNDLE_SUFFIX);
             if (bundleList.size() > 0) {
                 for (String bundleItem : bundleList) {
-                    LogUtil.d(TAG, "copyBundles:--------------------------------");
-                    LogUtil.d(TAG, "copyBundles:bundleItem:" + bundleItem);
+                    LogUtil.d(TAG, "--------------------------------");
                     String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(BUNDLE_LIB_PATH) + BUNDLE_LIB_PATH.length(), bundleItem.indexOf(BUNDLE_SUFFIX)).replace("_", ".");
-                    LogUtil.d(TAG, "packageNameFromEntryName:bundleItem:" + packageNameFromEntryName);
-                    if (!isLocalBundleExists(packageNameFromEntryName))
-                        copyToLocal(packageNameFromEntryName, zipFile.getInputStream(zipFile.getEntry(bundleItem)));
+                    LogUtil.d(TAG, "bundleItem:" + bundleItem + ", packageNameFromEntryName:" + packageNameFromEntryName);
+                    if (!isLocalBundleExists(packageNameFromEntryName)) {
+                        try {
+                            Bundle bundle = getBundle(packageNameFromEntryName);
+                            if (bundle == null) {
+                                //临时修改本地存储路径名 //todo
+                                bundle = new Bundle(new File(bundlesDir, packageNameFromEntryName), packageNameFromEntryName, zipFile.getInputStream(zipFile.getEntry(bundleItem)));
+                                bundles.put(bundle.getPackageName(), bundle);
+                            }
+                        } catch (Exception e) {
+                            LogUtil.e(TAG, "copyToLocal failure: " + packageNameFromEntryName, e);
+                        }
+                    }
                 }
+
                 saveBundleKey(application, getCurrentBundleKey(application));
             } else {
                 LogUtil.w(TAG, "find no bundles at " + BUNDLE_LIB_PATH);
@@ -190,28 +197,7 @@ public class BundleManager {
                 e.printStackTrace();
             }
         }
-        LogUtil.w(TAG, "copyBundles:end:allBundles:耗时: " + (System.currentTimeMillis() - startTime) + "ms \n" + getInstance().getBundles().toString());
-    }
-
-    public Bundle copyToLocal(String directoryName, InputStream inputStream) {
-        LogUtil.d(TAG, "copyToLocal start: " + directoryName);
-        long startTime = System.currentTimeMillis();
-        Bundle bundle = null;
-        try {
-            bundle = getBundle(directoryName);
-            if (bundle != null)
-                return bundle;
-            //临时修改本地存储路径名 //todo
-            bundle = new Bundle(new File(bundlesDir, directoryName), directoryName, inputStream);
-
-            //save start
-            bundles.put(bundle.getPackageName(), bundle);
-            //save end
-        } catch (Exception e) {
-            LogUtil.e(TAG, "copyToLocal failure: " + directoryName, e);
-        }
-        LogUtil.d(TAG, "copyToLocal end: 耗时: " + (System.currentTimeMillis() - startTime) + "ms ");
-        return bundle;
+        LogUtil.w(TAG, "end:allBundles:耗时: " + (System.currentTimeMillis() - startTime) + "ms \n" + getInstance().getBundles().toString());
     }
 
     private boolean isLocalBundleExists(String packageName) {
@@ -274,7 +260,7 @@ public class BundleManager {
     }
 
     private int loadBundlesFromLocal() {
-        LogUtil.w(TAG, "loadBundlesFromLocal start");
+        LogUtil.w(TAG, "start");
         try {
             File[] bundleDirs = new File(bundlesDir).listFiles();
             if (bundleDirs != null) {
@@ -288,10 +274,10 @@ public class BundleManager {
                     }
                 }
             }
-            LogUtil.w(TAG, "loadBundlesFromLocal end , return 1(成功)");
+            LogUtil.w(TAG, "end , return 1(成功)");
             return 1;
         } catch (Exception e) {
-            LogUtil.e(TAG, "loadBundlesFromLocal end , return 0(异常)", e);
+            LogUtil.e(TAG, "end , return 0(异常)", e);
             return 0;
         }
     }

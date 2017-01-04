@@ -1,5 +1,6 @@
 package com.mlibrary.patch.util;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 public class LogUtil {
@@ -10,52 +11,82 @@ public class LogUtil {
     }
 
     public static void v(String tag, String msg) {
-        v(tag, msg, null);
+        v(tag, getLocation() + msg, null);
     }
 
     public static void v(String tag, String msg, Throwable tr) {
         if (isDebugging) {
-            Log.v(tag, msg, tr);
+            Log.v(tag, getLocation() + msg, tr);
         }
     }
 
     public static void d(String tag, String msg) {
-        d(tag, msg, null);
+        d(tag, getLocation() + msg, null);
     }
 
     public static void d(String tag, String msg, Throwable tr) {
         if (isDebugging) {
-            Log.d(tag, msg, tr);
+            Log.d(tag, getLocation() + msg, tr);
         }
     }
 
     public static void i(String tag, String msg) {
-        i(tag, msg, null);
+        i(tag, getLocation() + msg, null);
     }
 
     public static void i(String tag, String msg, Throwable tr) {
         if (isDebugging) {
-            Log.i(tag, msg, tr);
+            Log.i(tag, getLocation() + msg, tr);
         }
     }
 
     public static void w(String tag, String msg) {
-        w(tag, msg, null);
+        w(tag, getLocation() + msg, null);
     }
 
     public static void w(String tag, String msg, Throwable tr) {
         if (isDebugging) {
-            Log.w(tag, msg, tr);
+            Log.w(tag, getLocation() + msg, tr);
         }
     }
 
     public static void e(String tag, String msg) {
-        e(tag, msg, null);
+        e(tag, getLocation() + msg, null);
     }
 
     public static void e(String tag, String msg, Throwable tr) {
         if (isDebugging) {
-            Log.e(tag, msg, tr);
+            Log.e(tag, getLocation() + msg, tr);
         }
+    }
+
+    public static String getLocation() {
+        final String className = LogUtil.class.getName();
+        boolean found = false;
+        for (StackTraceElement trace : Thread.currentThread().getStackTrace()) {
+            try {
+                if (found) {
+                    if (!trace.getClassName().startsWith(className)) {
+                        Class<?> clazz = Class.forName(trace.getClassName());
+                        return "[" + getClassName(clazz) + ":"
+                                + trace.getMethodName() + ":"
+                                + trace.getLineNumber() + "]: ";
+                    }
+                } else if (trace.getClassName().startsWith(className)) {
+                    found = true;
+                }
+            } catch (ClassNotFoundException ignored) {
+            }
+        }
+        return "[]: ";
+    }
+
+    public static String getClassName(Class<?> clazz) {
+        if (clazz != null) {
+            if (!TextUtils.isEmpty(clazz.getSimpleName()))
+                return clazz.getSimpleName();
+            return getClassName(clazz.getEnclosingClass());
+        }
+        return null;
     }
 }

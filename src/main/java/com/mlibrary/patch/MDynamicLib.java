@@ -2,7 +2,7 @@ package com.mlibrary.patch;
 
 import android.app.Application;
 
-import com.mlibrary.patch.framework.BundleManager;
+import com.mlibrary.patch.bundle.BundleManager;
 
 public class MDynamicLib {
     public static final String TAG = MDynamicLib.class.getName();

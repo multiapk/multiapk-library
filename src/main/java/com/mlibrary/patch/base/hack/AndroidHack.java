@@ -1,4 +1,4 @@
-package com.mlibrary.patch.hack;
+package com.mlibrary.patch.base.hack;
 
 import android.app.Application;
 import android.app.Instrumentation;

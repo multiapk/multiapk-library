@@ -1,4 +1,4 @@
-package com.mlibrary.patch.runtime;
+package com.mlibrary.patch.base.runtime;
 
 import android.app.Application;
 import android.content.res.AssetManager;
@@ -6,10 +6,10 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.util.DisplayMetrics;
 
-import com.mlibrary.patch.framework.Bundle;
-import com.mlibrary.patch.framework.BundleManager;
-import com.mlibrary.patch.hack.AndroidHack;
-import com.mlibrary.patch.hack.SysHacks;
+import com.mlibrary.patch.base.hack.SysHacks;
+import com.mlibrary.patch.bundle.Bundle;
+import com.mlibrary.patch.bundle.BundleManager;
+import com.mlibrary.patch.base.hack.AndroidHack;
 import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.MDynamicLib;
 

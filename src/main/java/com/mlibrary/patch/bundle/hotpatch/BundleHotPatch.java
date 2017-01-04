@@ -1,10 +1,11 @@
-package com.mlibrary.patch.framework;
+package com.mlibrary.patch.bundle.hotpatch;
 
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.mlibrary.patch.MDynamicLib;
-import com.mlibrary.patch.runtime.RuntimeArgs;
+import com.mlibrary.patch.bundle.BundleManager;
+import com.mlibrary.patch.base.runtime.RuntimeArgs;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.util.bspatch.MBSPatchUtil;

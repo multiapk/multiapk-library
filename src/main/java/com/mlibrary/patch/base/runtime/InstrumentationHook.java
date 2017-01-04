@@ -1,4 +1,4 @@
-package com.mlibrary.patch.runtime;
+package com.mlibrary.patch.base.runtime;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -19,7 +19,7 @@ import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
-import com.mlibrary.patch.hack.SysHacks;
+import com.mlibrary.patch.base.hack.SysHacks;
 import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.patch.MDynamicLib;
 

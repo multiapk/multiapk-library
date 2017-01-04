@@ -1,4 +1,4 @@
-package com.mlibrary.patch.hack;
+package com.mlibrary.patch.base.hack;
 
 
 import java.lang.reflect.Constructor;
@@ -6,8 +6,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import static com.mlibrary.patch.hack.Interception.InterceptionHandler;
-import static com.mlibrary.patch.hack.Interception.proxy;
+import static com.mlibrary.patch.base.hack.Interception.proxy;
 
 /**
  * Created by yb.wang on 14/12/31.
@@ -225,7 +224,7 @@ public class Hack {
             if (obj == null)
                 throw new IllegalStateException("Cannot hijack null");
             Class<?>[] classes = obj.getClass().getInterfaces();
-            set(c, proxy(obj, (InterceptionHandler) interceptionHandler, classes));
+            set(c, Interception.proxy(obj, (Interception.InterceptionHandler) interceptionHandler, classes));
         }
 
         public Field getField() {

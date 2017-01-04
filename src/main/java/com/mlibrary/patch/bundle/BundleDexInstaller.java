@@ -1,4 +1,4 @@
-package com.mlibrary.patch.framework;
+package com.mlibrary.patch.bundle;
 
 import android.os.Build;
 import android.util.Log;
@@ -36,18 +36,12 @@ public class BundleDexInstaller {
         }
     }
 
-//        /**
-//         * Returns whether all files in the list are valid zip files.  If {@code files} is empty, then
-//         * returns true.
-//         */
-//        private static boolean checkValidZipFiles(List<File> files) {
-//            for (File file : files) {
-//                if (!MultiDexExtractor.verifyZipFile(file)) {
-//                    return false;
-//                }
-//            }
-//            return true;
-//        }
+    /*private static boolean checkValidZipFiles(List<File> files) {
+        for (File file : files)
+            if (!MultiDexExtractor.verifyZipFile(file))
+                return false;
+        return true;
+    }*/
 
     /**
      * Locates a given field anywhere in the class inheritance hierarchy.
@@ -61,17 +55,12 @@ public class BundleDexInstaller {
         for (Class<?> clazz = instance.getClass(); clazz != null; clazz = clazz.getSuperclass()) {
             try {
                 Field field = clazz.getDeclaredField(name);
-
-                if (!field.isAccessible()) {
+                if (!field.isAccessible())
                     field.setAccessible(true);
-                }
-
                 return field;
-            } catch (NoSuchFieldException e) {
-                // ignore and search next
+            } catch (NoSuchFieldException ignore) {
             }
         }
-
         throw new NoSuchFieldException("Field " + name + " not found in " + instance.getClass());
     }
 
@@ -88,12 +77,10 @@ public class BundleDexInstaller {
         for (Class<?> clazz = instance.getClass(); clazz != null; clazz = clazz.getSuperclass()) {
             try {
                 Method method = clazz.getDeclaredMethod(name, parameterTypes);
-                if (!method.isAccessible()) {
+                if (!method.isAccessible())
                     method.setAccessible(true);
-                }
                 return method;
-            } catch (NoSuchMethodException e) {
-                // ignore and search next
+            } catch (NoSuchMethodException ignore) {
             }
         }
         throw new NoSuchMethodException("Method " + name + " with parameters " + Arrays.asList(parameterTypes) + " not found in " + instance.getClass());
@@ -123,7 +110,6 @@ public class BundleDexInstaller {
         }
     }
 
-
     private static final class V23 {
         private static void install(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InvocationTargetException, NoSuchMethodException, InstantiationException {
             Field pathListField = findField(loader, "pathList");
@@ -140,9 +126,6 @@ public class BundleDexInstaller {
         }
     }
 
-    /**
-     * Installer for platform versions 19.
-     */
     private static final class V19 {
         private static void install(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InvocationTargetException, NoSuchMethodException, IOException {
             /* The patched class loader is expected to be a descendant of
