@@ -1,11 +1,10 @@
 package com.mlibrary.patch.bundle.hotpatch;
 
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.mlibrary.patch.MDynamicLib;
-import com.mlibrary.patch.bundle.BundleManager;
 import com.mlibrary.patch.base.runtime.RuntimeArgs;
+import com.mlibrary.patch.bundle.BundleManager;
 import com.mlibrary.patch.util.FileUtil;
 import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.util.bspatch.MBSPatchUtil;
@@ -61,16 +60,16 @@ public class BundleHotPatch {
                 LogUtil.w(TAG, "find no bundles at " + BundleManager.BUNDLE_LIB_PATH);
             }
         } catch (Exception e) {
-            Log.e(TAG, "zip exception", e);
+            LogUtil.e(TAG, "zip exception", e);
         } finally {
             try {
                 if (zipFile != null)
                     zipFile.close();
             } catch (Exception e) {
-                Log.e(TAG, "zip close failure", e);
+                LogUtil.e(TAG, "zip close failure", e);
             }
         }
-        Log.e(TAG, "copyDownloadPatchToLocal:inputStream==null?" + (inputStream == null));
+        LogUtil.e(TAG, "copyDownloadPatchToLocal:inputStream==null?" + (inputStream == null));
 
         if (!baseBundleFile.exists())
             throw new IllegalStateException("baseBundle is null ! packageName:" + packageName);
@@ -78,19 +77,19 @@ public class BundleHotPatch {
 
         //add new
         FileUtil.copyInputStreamToFile(new FileInputStream(downloadPatchFile), hotPatchDownloadFile);
-        Log.w(TAG, "合成差分包 start ****************************************");
-        Log.d(TAG, "合成前 baseBundleFile.exists?" + baseBundleFile.exists());
-        Log.d(TAG, "合成前 downloadPatchFile.exists?" + downloadPatchFile.exists());
-        Log.d(TAG, "合成前 hotPatchSyntheticBundleFile.exists?" + hotPatchSyntheticBundleFile.exists());
+        LogUtil.w(TAG, "合成差分包 start ****************************************");
+        LogUtil.d(TAG, "合成前 baseBundleFile.exists?" + baseBundleFile.exists());
+        LogUtil.d(TAG, "合成前 downloadPatchFile.exists?" + downloadPatchFile.exists());
+        LogUtil.d(TAG, "合成前 hotPatchSyntheticBundleFile.exists?" + hotPatchSyntheticBundleFile.exists());
         try {
             new MBSPatchUtil().bspatch(baseBundleFile.getPath(), hotPatchSyntheticBundleFile.getPath(), downloadPatchFile.getPath());
         } catch (Exception e) {
-            Log.e(TAG, "合成差分包失败", e);
+            LogUtil.e(TAG, "合成差分包失败", e);
         }
-        Log.d(TAG, "合成后 baseBundleFile.exists?" + baseBundleFile.exists());
-        Log.d(TAG, "合成后 downloadPatchFile.exists?" + downloadPatchFile.exists());
-        Log.d(TAG, "合成后 hotPatchSyntheticBundleFile.exists?" + hotPatchSyntheticBundleFile.exists());
-        Log.w(TAG, "合成差分包 end   ****************************************");
+        LogUtil.d(TAG, "合成后 baseBundleFile.exists?" + baseBundleFile.exists());
+        LogUtil.d(TAG, "合成后 downloadPatchFile.exists?" + downloadPatchFile.exists());
+        LogUtil.d(TAG, "合成后 hotPatchSyntheticBundleFile.exists?" + hotPatchSyntheticBundleFile.exists());
+        LogUtil.w(TAG, "合成差分包 end   ****************************************");
     }
 
     public static File getHotPatchBaseDir(String packageName) {

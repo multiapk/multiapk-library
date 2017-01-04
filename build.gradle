@@ -19,7 +19,7 @@ android {
 }
 
 dependencies {
-    compile 'com.mlibrary:mbspatchlib:0.0.1'
+    compile 'com.mlibrary:mbspatchlib:0.0.2'
 }
 
 //https://github.com/novoda/bintray-release/wiki

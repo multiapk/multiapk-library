@@ -11,7 +11,7 @@ public class LogUtil {
     }
 
     public static void v(String tag, String msg) {
-        v(tag, getLocation() + msg, null);
+        v(tag, msg, null);
     }
 
     public static void v(String tag, String msg, Throwable tr) {
@@ -21,7 +21,7 @@ public class LogUtil {
     }
 
     public static void d(String tag, String msg) {
-        d(tag, getLocation() + msg, null);
+        d(tag, msg, null);
     }
 
     public static void d(String tag, String msg, Throwable tr) {
@@ -31,7 +31,7 @@ public class LogUtil {
     }
 
     public static void i(String tag, String msg) {
-        i(tag, getLocation() + msg, null);
+        i(tag, msg, null);
     }
 
     public static void i(String tag, String msg, Throwable tr) {
@@ -41,7 +41,7 @@ public class LogUtil {
     }
 
     public static void w(String tag, String msg) {
-        w(tag, getLocation() + msg, null);
+        w(tag, msg, null);
     }
 
     public static void w(String tag, String msg, Throwable tr) {
@@ -51,7 +51,7 @@ public class LogUtil {
     }
 
     public static void e(String tag, String msg) {
-        e(tag, getLocation() + msg, null);
+        e(tag, msg, null);
     }
 
     public static void e(String tag, String msg, Throwable tr) {

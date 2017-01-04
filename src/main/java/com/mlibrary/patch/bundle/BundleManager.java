@@ -4,7 +4,6 @@ import android.app.Application;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.mlibrary.patch.MDynamicLib;
 import com.mlibrary.patch.base.hack.AndroidHack;
@@ -255,7 +254,7 @@ public class BundleManager {
                 e.printStackTrace();
             }
         }
-        Log.e(TAG, "getBaseBundleInputStream:inputStream==null?" + (inputStream == null));
+        LogUtil.e(TAG, "getBaseBundleInputStream:inputStream==null?" + (inputStream == null));
         return inputStream;
     }
 
