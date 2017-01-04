@@ -20,7 +20,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 
 import com.mlibrary.patch.base.hack.SysHacks;
-import com.mlibrary.patch.util.LogUtil;
+import com.mlibrary.patch.base.util.LogUtil;
 import com.mlibrary.patch.MDynamicLib;
 
 import java.util.List;
@@ -31,7 +31,7 @@ import java.util.List;
  * 挂载在系统中的Instrumentation，以拦截相应的方法
  */
 public class InstrumentationHook extends Instrumentation {
-    public static final String TAG = MDynamicLib.TAG + ":InstrumentationHook";
+    public static final String TAG = InstrumentationHook.class.getName();
 
     private Context context;
     private Instrumentation instrumentation;

@@ -3,7 +3,7 @@
 // (powered by Fernflower decompiler)
 //
 
-package com.mlibrary.patch.util;
+package com.mlibrary.patch.base.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;

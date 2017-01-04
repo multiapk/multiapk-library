@@ -1,4 +1,4 @@
-package com.mlibrary.patch.util;
+package com.mlibrary.patch.base.util;
 
 import android.text.TextUtils;
 import android.util.Log;

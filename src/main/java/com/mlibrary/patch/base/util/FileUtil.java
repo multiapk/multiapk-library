@@ -1,9 +1,8 @@
-package com.mlibrary.patch.util;
+package com.mlibrary.patch.base.util;
 
-
-import com.mlibrary.patch.MDynamicLib;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,7 +10,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class FileUtil {
-    private static final String TAG = MDynamicLib.TAG + ":FileUtil";
+    private static final String TAG = FileUtil.class.getName();
+
 
     public static void deleteDirectory(File file) {
         try {
@@ -27,6 +27,40 @@ public class FileUtil {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * 使用文件通道的方式复制文件
+     *
+     * @param sourceFile 源文件
+     * @param destFile   复制到的新文件
+     */
+
+    public static void fileChannelCopy(File sourceFile, File destFile) throws IOException {
+        FileInputStream fileInputStream = null;
+        FileOutputStream fileOutputStream = null;
+        FileChannel fileChannelIn = null;
+        FileChannel fileChannelOut = null;
+        try {
+            fileInputStream = new FileInputStream(sourceFile);
+            fileOutputStream = new FileOutputStream(destFile);
+            fileChannelIn = fileInputStream.getChannel();// 得到对应的文件通道
+            fileChannelOut = fileOutputStream.getChannel();// 得到对应的文件通道
+            fileChannelIn.transferTo(0, fileChannelIn.size(), fileChannelOut);// 连接两个通道，并且从in通道读取，然后写入out通道
+        } finally {
+            try {
+                if (fileInputStream != null)
+                    fileInputStream.close();
+                if (fileChannelIn != null)
+                    fileChannelIn.close();
+                if (fileOutputStream != null)
+                    fileOutputStream.close();
+                if (fileChannelOut != null)
+                    fileChannelOut.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 

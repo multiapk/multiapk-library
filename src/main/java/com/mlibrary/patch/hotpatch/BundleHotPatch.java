@@ -1,12 +1,11 @@
-package com.mlibrary.patch.bundle.hotpatch;
+package com.mlibrary.patch.hotpatch;
 
 import android.text.TextUtils;
 
-import com.mlibrary.patch.MDynamicLib;
 import com.mlibrary.patch.base.runtime.RuntimeArgs;
+import com.mlibrary.patch.base.util.FileUtil;
+import com.mlibrary.patch.base.util.LogUtil;
 import com.mlibrary.patch.bundle.BundleManager;
-import com.mlibrary.patch.util.FileUtil;
-import com.mlibrary.patch.util.LogUtil;
 import com.mlibrary.util.bspatch.MBSPatchUtil;
 
 import java.io.File;
@@ -15,9 +14,57 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.zip.ZipFile;
 
+/*
+ 上传参数: bundleKey: versionCode_versionName
+
+ 下发参数: {
+              bundleKey: versionCode_versionName,
+              patchList: [
+                  {
+                      patchUrl="https://www.ctrip.com/com.mctrip.modules.device.ios_1.patch",
+                      packageName:"com.mctrip.modules.device.ios"
+                      patchVersion:1
+                      patchMd5:""
+                      syntheticMd5:""
+                  },
+                  {
+                      patchUrl="https://www.ctrip.com/com.mctrip.modules.device.android_1.patch",
+                      packageName:"com.mctrip.modules.device.android"
+                      patchVersion:1
+                      patchMd5:""
+                      syntheticMd5:""
+                  },
+              ]
+          }
+ 本地目录: /hotpatch
+          ........./1_1(bundleKey)/
+          ......................../com.mctrip.modules.device.ios/
+          ......................................./com.mctrip.modules.device.ios_1.patch
+          ......................................./com.mctrip.modules.device.ios_1.so
+          ......................................./com.mctrip.modules.device.ios_2.patch
+          ......................................./com.mctrip.modules.device.ios_2.so
+          ......................................./com.mctrip.modules.device.ios_3.patch
+          ......................................./com.mctrip.modules.device.ios_3.so
+          ......................../com.mctrip.modules.device.android/
+          ......................................./com.mctrip.modules.device.android_1.patch
+          ......................................./com.mctrip.modules.device.android_1.so
+          ......................................./com.mctrip.modules.device.android_2.patch
+          ......................................./com.mctrip.modules.device.android_2.so
+          ......................................./com.mctrip.modules.device.android_3.patch
+          ......................................./com.mctrip.modules.device.android_3.so
+          ........./2_2(bundleKey)/
+          ......................../com.mctrip.modules.device.ios/
+          ......................................./com.mctrip.modules.device.ios_1.patch
+          ......................................./com.mctrip.modules.device.ios_1.so
+          ......................................./com.mctrip.modules.device.ios_2.patch
+          ......................................./com.mctrip.modules.device.ios_2.so
+          ......................................./com.mctrip.modules.device.ios_3.patch
+          ......................................./com.mctrip.modules.device.ios_3.so
+
+ */
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class BundleHotPatch {
-    private static final String TAG = MDynamicLib.TAG + ":BundleHotPatch";
+    private static final String TAG = BundleHotPatch.class.getName();
     private static final String PATCH_SUFFIX = ".patch";
 
     public static void copyDownloadPatchToLocal(String packageName, File downloadPatchFile) throws Exception {
@@ -36,20 +83,20 @@ public class BundleHotPatch {
         File baseBundleDir = new File(hotPatchBaseDir, "baseBundle");
         if (!baseBundleDir.exists())
             baseBundleDir.mkdirs();
-        File baseBundleFile = new File(baseBundleDir, packageName + BundleManager.BUNDLE_SUFFIX);
+        File baseBundleFile = new File(baseBundleDir, packageName + BundleManager.suffix);
 
         InputStream inputStream = null;
         ZipFile zipFile = null;
         try {
             zipFile = new ZipFile(RuntimeArgs.androidApplication.getApplicationInfo().sourceDir);
-            LogUtil.d(TAG, "copyDownloadPatchToLocal:sourceDir" + RuntimeArgs.androidApplication.getApplicationInfo().sourceDir);
-            List<String> bundleList = BundleManager.getBundleList(zipFile, BundleManager.BUNDLE_LIB_PATH, BundleManager.BUNDLE_SUFFIX);
+            LogUtil.d(TAG, "sourceDir" + RuntimeArgs.androidApplication.getApplicationInfo().sourceDir);
+            List<String> bundleList = BundleManager.getPathListByFilter(zipFile, BundleManager.bundleLibPath, BundleManager.suffix);
             if (bundleList.size() > 0) {
                 for (String bundleItem : bundleList) {
-                    LogUtil.d(TAG, "copyDownloadPatchToLocal:--------------------------------");
-                    LogUtil.d(TAG, "copyDownloadPatchToLocal:bundleItem:" + bundleItem);
-                    String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(BundleManager.BUNDLE_LIB_PATH) + BundleManager.BUNDLE_LIB_PATH.length(), bundleItem.indexOf(BundleManager.BUNDLE_SUFFIX)).replace("_", ".");
-                    LogUtil.d(TAG, "copyDownloadPatchToLocal:packageNameFromEntryName:" + packageNameFromEntryName);
+                    LogUtil.d(TAG, "--------------------------------");
+                    LogUtil.d(TAG, "bundleItem:" + bundleItem);
+                    String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(BundleManager.bundleLibPath) + BundleManager.bundleLibPath.length(), bundleItem.indexOf(BundleManager.suffix)).replace("_", ".");
+                    LogUtil.d(TAG, "packageNameFromEntryName:" + packageNameFromEntryName);
                     if (packageNameFromEntryName.equals(packageName)) {
                         inputStream = zipFile.getInputStream(zipFile.getEntry(bundleItem));
                         FileUtil.copyInputStreamToFile(inputStream, baseBundleFile);
@@ -57,7 +104,7 @@ public class BundleHotPatch {
                     }
                 }
             } else {
-                LogUtil.w(TAG, "find no bundles at " + BundleManager.BUNDLE_LIB_PATH);
+                LogUtil.w(TAG, "find no bundles at " + BundleManager.bundleLibPath);
             }
         } catch (Exception e) {
             LogUtil.e(TAG, "zip exception", e);
@@ -69,7 +116,6 @@ public class BundleHotPatch {
                 LogUtil.e(TAG, "zip close failure", e);
             }
         }
-        LogUtil.e(TAG, "copyDownloadPatchToLocal:inputStream==null?" + (inputStream == null));
 
         if (!baseBundleFile.exists())
             throw new IllegalStateException("baseBundle is null ! packageName:" + packageName);
@@ -82,7 +128,7 @@ public class BundleHotPatch {
         LogUtil.d(TAG, "合成前 downloadPatchFile.exists?" + downloadPatchFile.exists());
         LogUtil.d(TAG, "合成前 hotPatchSyntheticBundleFile.exists?" + hotPatchSyntheticBundleFile.exists());
         try {
-            new MBSPatchUtil().bspatch(baseBundleFile.getPath(), hotPatchSyntheticBundleFile.getPath(), downloadPatchFile.getPath());
+            MBSPatchUtil.bspatch(baseBundleFile.getPath(), hotPatchSyntheticBundleFile.getPath(), downloadPatchFile.getPath());
         } catch (Exception e) {
             LogUtil.e(TAG, "合成差分包失败", e);
         }
@@ -93,7 +139,7 @@ public class BundleHotPatch {
     }
 
     public static File getHotPatchBaseDir(String packageName) {
-        File hotPatchBaseDir = new File(BundleManager.getInstance().getBundlesDir() + packageName + "/hotPatch");
+        File hotPatchBaseDir = new File(BundleManager.instance.getBundlesDir(), packageName + "/hotPatch");
         if (!hotPatchBaseDir.exists())
             hotPatchBaseDir.mkdirs();
         return hotPatchBaseDir;
@@ -111,11 +157,11 @@ public class BundleHotPatch {
     }
 
     public static File getSyntheticBundle(File hotPatchBaseDir, String packageName) {
-        return new File(hotPatchBaseDir, packageName + BundleManager.BUNDLE_SUFFIX);
+        return new File(hotPatchBaseDir, packageName + BundleManager.suffix);
     }
 
     public static File getSyntheticBundle(String packageName) {
-        return new File(getHotPatchBaseDir(packageName), packageName + BundleManager.BUNDLE_SUFFIX);
+        return new File(getHotPatchBaseDir(packageName), packageName + BundleManager.suffix);
     }
 
     public static void delete(String packageName) {

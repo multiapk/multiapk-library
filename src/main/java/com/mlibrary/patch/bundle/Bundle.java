@@ -3,11 +3,10 @@ package com.mlibrary.patch.bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.mlibrary.patch.MDynamicLib;
-import com.mlibrary.patch.bundle.hotpatch.BundleHotPatch;
 import com.mlibrary.patch.base.runtime.RuntimeArgs;
-import com.mlibrary.patch.util.FileUtil;
-import com.mlibrary.patch.util.LogUtil;
+import com.mlibrary.patch.base.util.FileUtil;
+import com.mlibrary.patch.base.util.LogUtil;
+import com.mlibrary.patch.hotpatch.Hotpatch;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -18,14 +17,14 @@ import java.util.List;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class Bundle {
-    public static final String TAG = MDynamicLib.TAG + ":Bundle";
+    private static final String TAG = Bundle.class.getName();
     private volatile boolean isBundleDexInstalled = false;
-    public static final String SUFFIX = BundleManager.BUNDLE_SUFFIX;
+    public static final String SUFFIX = BundleManager.suffix;
     private File bundleFile = null;
     private File bundleDir = null;
     private String packageName = null;
 
-    Bundle(File bundleDir) throws Exception {
+    public Bundle(File bundleDir) throws Exception {
         this.bundleDir = bundleDir;
         if (bundleDir.exists()) {
             File[] localFiles = bundleDir.listFiles(new FilenameFilter() {
@@ -44,7 +43,7 @@ public class Bundle {
         Log.w(TAG, "bundleFilePath:" + bundleFile.getPath() + ", bundleFileName:" + bundleFile.getName() + ", packageName:" + packageName);
     }
 
-    Bundle(File bundleDir, String packageName, InputStream inputStream) throws Exception {
+    public Bundle(File bundleDir, String packageName, InputStream inputStream) throws Exception {
         if (bundleDir == null || TextUtils.isEmpty(packageName) || inputStream == null)
             throw new IllegalArgumentException("bundleDir:" + bundleDir + ", packageName:" + packageName + ", inputStream==null?" + (inputStream == null));
 
@@ -67,9 +66,11 @@ public class Bundle {
         long startTime = System.currentTimeMillis();
         if (!isBundleDexInstalled) {
             //检测是否有热更新的合成包
-            File syntheticBundleFile = BundleHotPatch.getSyntheticBundle(getPackageName());
+            File syntheticBundleFile = Hotpatch.instance.getLatestBundleFile(getPackageName());
+            //File syntheticBundleFile = BundleHotPatch.getSyntheticBundle(getPackageName());
             if (syntheticBundleFile.exists()) {
-                this.bundleDir = BundleHotPatch.getHotPatchBaseDir(packageName);
+                //// TODO: 2017/1/4 bundleDir must a alone directory
+                this.bundleDir = syntheticBundleFile.getParentFile();
                 this.bundleFile = syntheticBundleFile;
                 Log.w(TAG, "发现合成包:" + bundleFile.getPath());
             }

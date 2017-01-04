@@ -6,15 +6,11 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.util.DisplayMetrics;
 
-import com.mlibrary.patch.base.hack.SysHacks;
-import com.mlibrary.patch.bundle.Bundle;
-import com.mlibrary.patch.bundle.BundleManager;
 import com.mlibrary.patch.base.hack.AndroidHack;
-import com.mlibrary.patch.util.LogUtil;
-import com.mlibrary.patch.MDynamicLib;
+import com.mlibrary.patch.base.hack.SysHacks;
+import com.mlibrary.patch.base.util.LogUtil;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -22,24 +18,22 @@ import java.util.List;
  * 挂载载系统资源中，处理框架资源加载
  */
 public class ResourcesHook extends Resources {
-    public static final String TAG = MDynamicLib.TAG + ":ResourcesHook";
+    public static final String TAG = ResourcesHook.class.getName();
 
     @SuppressWarnings("deprecation")
     private ResourcesHook(AssetManager assets, Resources resources) {
         super(assets, resources.getDisplayMetrics(), resources.getConfiguration());
     }
 
-    public static void newResourcesHook(Application application, Resources resources) throws Exception {
-        List<Bundle> bundles = BundleManager.getInstance().getBundles();
-        if (bundles != null && !bundles.isEmpty()) {
+    public static void newResourcesHook(Application application, Resources resources, List<String> assetPathList) throws Exception {
+        if (assetPathList != null && !assetPathList.isEmpty()) {
             Resources delegateResources;
-            List<String> arrayList = new ArrayList<>();
-            arrayList.add(application.getApplicationInfo().sourceDir);
-            for (Bundle bundle : bundles)
-                arrayList.add((bundle).getBundleFilePath());
+            assetPathList.add(0, application.getApplicationInfo().sourceDir);
+
             AssetManager assetManager = AssetManager.class.newInstance();
-            for (String str : arrayList)
-                SysHacks.AssetManager_addAssetPath.invoke(assetManager, str);//addAssetPath
+            for (String assetPath : assetPathList)
+                SysHacks.AssetManager_addAssetPath.invoke(assetManager, assetPath);//addAssetPath
+
             //处理小米UI资源
             if (resources == null || !resources.getClass().getName().equals("android.content.res.MiuiResources")) {
                 delegateResources = new ResourcesHook(assetManager, resources);
@@ -48,19 +42,20 @@ public class ResourcesHook extends Resources {
                 declaredConstructor.setAccessible(true);
                 delegateResources = (Resources) declaredConstructor.newInstance(assetManager, resources.getDisplayMetrics(), resources.getConfiguration());
             }
+
             RuntimeArgs.delegateResources = delegateResources;
             AndroidHack.injectResources(application, delegateResources);
 
             //just for log
-            StringBuilder stringBuffer = new StringBuilder();
-            stringBuffer.append("newResourcesHook:addAssetPath [\n");
-            for (int i = 0; i < arrayList.size(); i++) {
+            StringBuilder logBuffer = new StringBuilder();
+            logBuffer.append("newResourcesHook:addAssetPath [\n");
+            for (int i = 0; i < assetPathList.size(); i++) {
                 if (i > 0)
-                    stringBuffer.append(",\n");
-                stringBuffer.append(arrayList.get(i));
+                    logBuffer.append(",\n");
+                logBuffer.append(assetPathList.get(i));
             }
-            stringBuffer.append("\n]");
-            LogUtil.d(TAG, stringBuffer.toString());
+            logBuffer.append("\n]");
+            LogUtil.d(TAG, logBuffer.toString());
         }
     }
 }
