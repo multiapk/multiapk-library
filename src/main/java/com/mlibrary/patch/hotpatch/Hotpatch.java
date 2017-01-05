@@ -188,7 +188,7 @@ public enum Hotpatch {
             ZipFile zipFile = null;
             try {
                 zipFile = new ZipFile(RuntimeArgs.androidApplication.getApplicationInfo().sourceDir);
-                for (String bundleBasePath : BundleManager.getPathListByFilter(zipFile, BundleManager.bundleLibPath, BundleManager.suffix_bundle_in_local)) {
+                for (String bundleBasePath : BundleManager.getPathListByFilter(zipFile, BundleManager.bundleLibPath, BundleManager.suffix_bundle_in_assets)) {
                     String bundlePackageName = bundleBasePath.substring(bundleBasePath.indexOf(BundleManager.bundleLibPath) + BundleManager.bundleLibPath.length(), bundleBasePath.indexOf(BundleManager.suffix_bundle_in_assets)).replace("_", ".");
                     LogUtil.d(TAG, "bundleBasePath:" + bundleBasePath + ", packageName:" + packageName);
                     if (bundlePackageName.equals(packageName)) {
