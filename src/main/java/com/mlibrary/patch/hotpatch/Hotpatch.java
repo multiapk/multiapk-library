@@ -139,8 +139,9 @@ public enum Hotpatch {
             File tmpSyntheticBundleZip = new File(latestVersionFile, packageName + BundleManager.suffix_bundle_in_assets);
             if (!tmpSyntheticBundleZip.exists())
                 throw new FileNotFoundException();
-            File tmpSyntheticBundleDex = new File(latestVersionFile, packageName + BundleManager.suffix_dex);
-            latestSyntheticBundleFile = tmpSyntheticBundleDex.exists() ? tmpSyntheticBundleDex : tmpSyntheticBundleZip;//优先给dex,即使给zip最后也会耗费时间解析成dex
+            //File tmpSyntheticBundleDex = new File(latestVersionFile, packageName + BundleManager.suffix_dex);
+            //latestSyntheticBundleFile = tmpSyntheticBundleDex.exists() ? tmpSyntheticBundleDex : tmpSyntheticBundleZip;//优先给dex,即使给zip最后也会耗费时间解析成dex
+            latestSyntheticBundleFile = tmpSyntheticBundleZip;
         } catch (Exception ignore) {
             LogUtil.w(TAG, "find no synthetic bundle file!");
         }
