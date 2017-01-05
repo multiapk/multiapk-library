@@ -80,7 +80,7 @@ public class Bundle {
 
             List<File> bundleList = new ArrayList<>();
             bundleList.add(this.bundleFile);
-            BundleDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), bundleDir, bundleList, false);
+            BundleDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), bundleList, bundleDir, false);
             isBundleDexInstalled = true;
         }
         LogUtil.v(TAG, "installBundleDex：" + getPackageName() + ", 耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");

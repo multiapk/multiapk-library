@@ -22,29 +22,16 @@ public class BundleDexInstaller {
     private BundleDexInstaller() {
     }
 
-    /**
-     * @param loader
-     * @param dexDir   仅仅作为 new File 的第一个参数：File result = new File(optimizedDirectory, fileName);
-     * @param files
-     * @param isHotFix
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
-     * @throws NoSuchFieldException
-     * @throws InstantiationException
-     * @throws InvocationTargetException
-     * @throws NoSuchMethodException
-     * @throws IOException
-     */
-    public static void installBundleDex(ClassLoader loader, File dexDir, List<File> files, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException, InvocationTargetException, NoSuchMethodException, IOException {
-        if (!files.isEmpty()) {
+    public static void installBundleDex(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException, InvocationTargetException, NoSuchMethodException, IOException {
+        if (!additionalClassPathEntries.isEmpty()) {
             if (Build.VERSION.SDK_INT >= 23) {
-                V23.install(loader, files, dexDir, isHotFix);
+                V23.install(loader, additionalClassPathEntries, optimizedDirectory, isHotFix);
             } else if (Build.VERSION.SDK_INT >= 19) {
-                V19.install(loader, files, dexDir, isHotFix);
+                V19.install(loader, additionalClassPathEntries, optimizedDirectory, isHotFix);
             } else if (Build.VERSION.SDK_INT >= 14) {
-                V14.install(loader, files, dexDir, isHotFix);
+                V14.install(loader, additionalClassPathEntries, optimizedDirectory, isHotFix);
             } else {
-                V4.install(loader, files, isHotFix);
+                V4.install(loader, additionalClassPathEntries, isHotFix);
             }
         }
     }
@@ -127,12 +114,15 @@ public class BundleDexInstaller {
         private static void install(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InvocationTargetException, NoSuchMethodException, InstantiationException {
             Field pathListField = findField(loader, "pathList");
             Object dexPathList = pathListField.get(loader);
-            Field dexElement = findField(dexPathList, "dexElements");
-            Class<?> elementType = dexElement.getType().getComponentType();
             Method loadDex = findMethod(dexPathList, "loadDexFile", File.class, File.class);
             Object dex = loadDex.invoke(dexPathList, additionalClassPathEntries.get(0), optimizedDirectory);
-            Constructor<?> constructor = elementType.getConstructor(File.class, boolean.class, File.class, DexFile.class);
-            Object element = constructor.newInstance(new File(""), false, additionalClassPathEntries.get(0), dex);
+
+            //make a {@see https://android.googlesource.com/platform/libcore-snapshot/+/ics-mr1/dalvik/src/main/java/dalvik/system/DexPathList.java$Element}
+            Field dexElement = findField(dexPathList, "dexElements");//private final Element[] dexElements;/** list of dex/resource (class path) elements */
+            Class<?> elementType = dexElement.getType().getComponentType();//the {@code Class} representing the component type of this * class if this class is an array
+            Constructor<?> constructor = elementType.getConstructor(File.class, boolean.class, File.class, DexFile.class);//public Element(File file, ZipFile zipFile, DexFile dexFile){}
+            Object element = constructor.newInstance(new File(""), false, additionalClassPathEntries.get(0), dex);//got a Element instance with suffix is "*.so"
+
             Object[] newElement = new Object[1];
             newElement[0] = element;
             expandFieldArray(dexPathList, "dexElements", newElement, isHotFix);
