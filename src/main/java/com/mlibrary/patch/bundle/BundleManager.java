@@ -27,7 +27,9 @@ public enum BundleManager {
 
     private static final String TAG = BundleManager.class.getName();
     public static final String bundleLibPath = "assets/baseres/";
-    public static final String suffix = ".so";
+    public static final String suffix_bundle_in_local = ".zip";//if (name.endsWith(APK_SUFFIX) || name.endsWith(JAR_SUFFIX) || name.endsWith(ZIP_SUFFIX))
+    public static final String suffix_bundle_in_assets = ".so";
+    public static final String suffix_dex = ".dex";
 
     private final Map<String, Bundle> bundles = new ConcurrentHashMap<>();
     private File bundlesDir;
@@ -138,7 +140,7 @@ public enum BundleManager {
     }
 
     public File getBaseBundleFile(String packageName) {
-        return new File(bundlesDir, packageName + File.separator + packageName + suffix);
+        return new File(bundlesDir, packageName + File.separator + packageName + suffix_bundle_in_assets);
     }
 
     public void copyBundlesToLocalFromAssets(Application application) {
@@ -148,8 +150,8 @@ public enum BundleManager {
         try {
             LogUtil.d(TAG, "open zip sourceDir: " + application.getApplicationInfo().sourceDir);
             zipFile = new ZipFile(application.getApplicationInfo().sourceDir);
-            for (String bundleBasePath : getPathListByFilter(zipFile, bundleLibPath, suffix)) {
-                String packageName = bundleBasePath.substring(bundleBasePath.indexOf(bundleLibPath) + bundleLibPath.length(), bundleBasePath.indexOf(suffix)).replace("_", ".");
+            for (String bundleBasePath : getPathListByFilter(zipFile, bundleLibPath, suffix_bundle_in_assets)) {
+                String packageName = bundleBasePath.substring(bundleBasePath.indexOf(bundleLibPath) + bundleLibPath.length(), bundleBasePath.indexOf(suffix_bundle_in_assets)).replace("_", ".");
                 LogUtil.d(TAG, "bundleBasePath:" + bundleBasePath + ", packageName:" + packageName);
                 if (!isLocalBundleExists(packageName)) {
                     try {

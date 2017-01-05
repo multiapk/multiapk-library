@@ -22,6 +22,19 @@ public class BundleDexInstaller {
     private BundleDexInstaller() {
     }
 
+    /**
+     * @param loader
+     * @param dexDir   仅仅作为 new File 的第一个参数：File result = new File(optimizedDirectory, fileName);
+     * @param files
+     * @param isHotFix
+     * @throws IllegalArgumentException
+     * @throws IllegalAccessException
+     * @throws NoSuchFieldException
+     * @throws InstantiationException
+     * @throws InvocationTargetException
+     * @throws NoSuchMethodException
+     * @throws IOException
+     */
     public static void installBundleDex(ClassLoader loader, File dexDir, List<File> files, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException, InvocationTargetException, NoSuchMethodException, IOException {
         if (!files.isEmpty()) {
             if (Build.VERSION.SDK_INT >= 23) {

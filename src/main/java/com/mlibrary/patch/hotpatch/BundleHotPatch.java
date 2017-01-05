@@ -83,19 +83,19 @@ public class BundleHotPatch {
         File baseBundleDir = new File(hotPatchBaseDir, "baseBundle");
         if (!baseBundleDir.exists())
             baseBundleDir.mkdirs();
-        File baseBundleFile = new File(baseBundleDir, packageName + BundleManager.suffix);
+        File baseBundleFile = new File(baseBundleDir, packageName + BundleManager.suffix_bundle_in_local);
 
         InputStream inputStream = null;
         ZipFile zipFile = null;
         try {
             zipFile = new ZipFile(RuntimeArgs.androidApplication.getApplicationInfo().sourceDir);
             LogUtil.d(TAG, "sourceDir" + RuntimeArgs.androidApplication.getApplicationInfo().sourceDir);
-            List<String> bundleList = BundleManager.getPathListByFilter(zipFile, BundleManager.bundleLibPath, BundleManager.suffix);
+            List<String> bundleList = BundleManager.getPathListByFilter(zipFile, BundleManager.bundleLibPath, BundleManager.suffix_bundle_in_local);
             if (bundleList.size() > 0) {
                 for (String bundleItem : bundleList) {
                     LogUtil.d(TAG, "--------------------------------");
                     LogUtil.d(TAG, "bundleItem:" + bundleItem);
-                    String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(BundleManager.bundleLibPath) + BundleManager.bundleLibPath.length(), bundleItem.indexOf(BundleManager.suffix)).replace("_", ".");
+                    String packageNameFromEntryName = bundleItem.substring(bundleItem.indexOf(BundleManager.bundleLibPath) + BundleManager.bundleLibPath.length(), bundleItem.indexOf(BundleManager.suffix_bundle_in_local)).replace("_", ".");
                     LogUtil.d(TAG, "packageNameFromEntryName:" + packageNameFromEntryName);
                     if (packageNameFromEntryName.equals(packageName)) {
                         inputStream = zipFile.getInputStream(zipFile.getEntry(bundleItem));
@@ -157,11 +157,11 @@ public class BundleHotPatch {
     }
 
     public static File getSyntheticBundle(File hotPatchBaseDir, String packageName) {
-        return new File(hotPatchBaseDir, packageName + BundleManager.suffix);
+        return new File(hotPatchBaseDir, packageName + BundleManager.suffix_bundle_in_local);
     }
 
     public static File getSyntheticBundle(String packageName) {
-        return new File(getHotPatchBaseDir(packageName), packageName + BundleManager.suffix);
+        return new File(getHotPatchBaseDir(packageName), packageName + BundleManager.suffix_bundle_in_local);
     }
 
     public static void delete(String packageName) {

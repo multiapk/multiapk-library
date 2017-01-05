@@ -19,7 +19,7 @@ import java.util.List;
 public class Bundle {
     private static final String TAG = Bundle.class.getName();
     private volatile boolean isBundleDexInstalled = false;
-    public static final String SUFFIX = BundleManager.suffix;
+    public static final String SUFFIX = BundleManager.suffix_bundle_in_assets;
     private File bundleFile = null;
     private File bundleDir = null;
     private String packageName = null;
@@ -66,10 +66,9 @@ public class Bundle {
         long startTime = System.currentTimeMillis();
         if (!isBundleDexInstalled) {
             //检测是否有热更新的合成包
-            File syntheticBundleFile = Hotpatch.instance.getLatestBundleFile(getPackageName());
+            File syntheticBundleFile = Hotpatch.instance.getLatestSyntheticBundle(getPackageName());
             //File syntheticBundleFile = BundleHotPatch.getSyntheticBundle(getPackageName());
-            if (syntheticBundleFile.exists()) {
-                //// TODO: 2017/1/4 bundleDir must a alone directory
+            if (syntheticBundleFile != null && syntheticBundleFile.exists()) {
                 this.bundleDir = syntheticBundleFile.getParentFile();
                 this.bundleFile = syntheticBundleFile;
                 Log.w(TAG, "发现合成包:" + bundleFile.getPath());
