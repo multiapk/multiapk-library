@@ -1,12 +1,10 @@
-package com.mlibrary.patch.base.hack;
+package com.mlibrary.multiapk.base.hack;
 
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
-import static com.mlibrary.patch.base.hack.Interception.proxy;
 
 /**
  * Created by yb.wang on 14/12/31.

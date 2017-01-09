@@ -1,4 +1,4 @@
-package com.mlibrary.patch.bundle;
+package com.mlibrary.multiapk.core.apk;
 
 import android.os.Build;
 import android.util.Log;
@@ -18,8 +18,8 @@ import java.util.zip.ZipFile;
 
 import dalvik.system.DexFile;
 
-public class BundleDexInstaller {
-    private BundleDexInstaller() {
+public class ApkDexInstaller {
+    private ApkDexInstaller() {
     }
 
     public static void installBundleDex(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException, InvocationTargetException, NoSuchMethodException, IOException {
@@ -95,7 +95,7 @@ public class BundleDexInstaller {
      * @param extraElements elements to append at the end of the array.
      */
     private static void expandFieldArray(Object instance, String fieldName, Object[] extraElements, boolean isHotFix) throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
-        synchronized (BundleDexInstaller.class) {
+        synchronized (ApkDexInstaller.class) {
             Field jlrField = findField(instance, fieldName);
             Object[] original = (Object[]) jlrField.get(instance);
             Object[] combined = (Object[]) Array.newInstance(original.getClass().getComponentType(), original.length + extraElements.length);

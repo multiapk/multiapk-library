@@ -1,4 +1,4 @@
-package com.mlibrary.patch.base.hack;
+package com.mlibrary.multiapk.base.hack;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -6,8 +6,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-class AssertionArrayException extends Exception {
-    public static final String SYMBOL_SEMICOLON = ";";
+public class AssertionArrayException extends Exception {
+    private static final String SYMBOL_SEMICOLON = ";";
     private static final long serialVersionUID = 1;
     private List<Hack.HackDeclaration.HackAssertionException> mAssertionErr;
 

@@ -1,12 +1,12 @@
-package com.mlibrary.patch.hotpatch;
+package com.mlibrary.multiapk.core.hotpatch;
 
 import android.text.TextUtils;
 
-import com.mlibrary.patch.MDynamicLib;
-import com.mlibrary.patch.base.runtime.RuntimeArgs;
-import com.mlibrary.patch.base.util.FileUtil;
-import com.mlibrary.patch.base.util.LogUtil;
-import com.mlibrary.patch.bundle.BundleManager;
+import com.mlibrary.multiapk.MultiApk;
+import com.mlibrary.multiapk.base.runtime.RuntimeArgs;
+import com.mlibrary.multiapk.base.util.FileUtil;
+import com.mlibrary.multiapk.base.util.LogUtil;
+import com.mlibrary.multiapk.core.apk.ApkManager;
 import com.mlibrary.util.bspatch.MBSPatchUtil;
 
 import java.io.File;
@@ -60,12 +60,11 @@ public enum Hotpatch {
     private final String baseDirName = "hotpatch";
     private final String suffix_patch = ".patch";
     private final String prefix_patch_version_dir = "patch.version.";
-    private final String split_flag = "_";
     private File baseDir = null;
     private boolean isInitSuccess = false;
 
     Hotpatch() {
-        baseDir = new File(MDynamicLib.getBaseDir(RuntimeArgs.androidApplication), baseDirName);
+        baseDir = new File(MultiApk.getBaseDir(RuntimeArgs.androidApplication), baseDirName);
         if (!baseDir.exists())
             isInitSuccess = baseDir.mkdirs();
         //todo check 自检是否存在未合并的差分包，启动合并，下次启动生效
@@ -123,10 +122,11 @@ public enum Hotpatch {
      * @return null or 优先返回.dex, 其次返回.zip(最终会被解压生成.dex)
      */
     public File getLatestSyntheticBundle(String packageName) {
-        return getLatestSyntheticBundle(MDynamicLib.getCurrentBundleKey(RuntimeArgs.androidApplication), packageName);
+        return getLatestSyntheticBundle(ApkManager.getCurrentBundleKey(RuntimeArgs.androidApplication), packageName);
     }
 
     /**
+     * @param bundleKey   bundleKey
      * @param packageName 模块包名
      * @return null or 优先返回.dex, 其次返回.zip(最终会被解压生成.dex)
      */
@@ -136,7 +136,7 @@ public enum Hotpatch {
         try {
             File latestVersionFile = patchVersionMap.get(patchVersionMap.lastKey());
             //hotpatch/app.version.1.1/com.mctrip.modules.device.ios/patch.version.9/com.mctrip.modules.device.ios.zip
-            File tmpSyntheticBundleZip = new File(latestVersionFile, packageName + BundleManager.suffix_bundle_in_assets);
+            File tmpSyntheticBundleZip = new File(latestVersionFile, packageName + ApkManager.suffix_bundle_in_assets);
             if (!tmpSyntheticBundleZip.exists())
                 throw new FileNotFoundException();
             //File tmpSyntheticBundleDex = new File(latestVersionFile, packageName + BundleManager.suffix_dex);
@@ -166,12 +166,12 @@ public enum Hotpatch {
             LogUtil.e(TAG, "arguments is un correct!");
             return;
         }
-        String bundleKey = MDynamicLib.getCurrentBundleKey(RuntimeArgs.androidApplication);
+        String bundleKey = ApkManager.getCurrentBundleKey(RuntimeArgs.androidApplication);
         File patchDir = new File(baseDir, bundleKey + File.separator + packageName + File.separator + getPatchVersionDirName(patchVersion));
         if (!patchDir.exists())
             patchDir.mkdirs();
         File downloadPatchFile = new File(patchDir, packageName + suffix_patch);
-        File syntheticBundleFile = new File(patchDir, packageName + BundleManager.suffix_bundle_in_assets);
+        File syntheticBundleFile = new File(patchDir, packageName + ApkManager.suffix_bundle_in_assets);
         if (syntheticBundleFile.exists()) {
             LogUtil.w(TAG, "syntheticBundleFile had exists!");
             return;
@@ -182,14 +182,14 @@ public enum Hotpatch {
 
         FileUtil.fileChannelCopy(sourceFile, downloadPatchFile);
 
-        File baseBundleFile = BundleManager.instance.getBaseBundleFile(packageName);//从 apk 已经拷贝到本地的 so
+        File baseBundleFile = ApkManager.instance.getBaseBundleFile(packageName);//从 apk 已经拷贝到本地的 so
         if (!baseBundleFile.exists()) {//使用 apk 里面的 so
             LogUtil.d(TAG, "can not find baseBundleFile in " + baseBundleFile.getPath() + ",\nbegin search in assets");
             ZipFile zipFile = null;
             try {
                 zipFile = new ZipFile(RuntimeArgs.androidApplication.getApplicationInfo().sourceDir);
-                for (String bundleBasePath : BundleManager.getPathListByFilter(zipFile, BundleManager.bundleLibPath, BundleManager.suffix_bundle_in_assets)) {
-                    String bundlePackageName = bundleBasePath.substring(bundleBasePath.indexOf(BundleManager.bundleLibPath) + BundleManager.bundleLibPath.length(), bundleBasePath.indexOf(BundleManager.suffix_bundle_in_assets)).replace("_", ".");
+                for (String bundleBasePath : ApkManager.getPathListByFilter(zipFile, ApkManager.bundleLibPath, ApkManager.suffix_bundle_in_assets)) {
+                    String bundlePackageName = bundleBasePath.substring(bundleBasePath.indexOf(ApkManager.bundleLibPath) + ApkManager.bundleLibPath.length(), bundleBasePath.indexOf(ApkManager.suffix_bundle_in_assets)).replace("_", ".");
                     LogUtil.d(TAG, "bundleBasePath:" + bundleBasePath + ", packageName:" + packageName);
                     if (bundlePackageName.equals(packageName)) {
                         FileUtil.copyInputStreamToFile(zipFile.getInputStream(zipFile.getEntry(bundleBasePath)), baseBundleFile);

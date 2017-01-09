@@ -1,4 +1,4 @@
-package com.mlibrary.patch.base.runtime;
+package com.mlibrary.multiapk.base.runtime;
 
 import android.annotation.SuppressLint;
 import android.app.Application;

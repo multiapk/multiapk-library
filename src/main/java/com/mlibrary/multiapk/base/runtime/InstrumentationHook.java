@@ -1,4 +1,4 @@
-package com.mlibrary.patch.base.runtime;
+package com.mlibrary.multiapk.base.runtime;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -19,9 +19,9 @@ import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
-import com.mlibrary.patch.base.hack.SysHacks;
-import com.mlibrary.patch.base.util.LogUtil;
-import com.mlibrary.patch.MDynamicLib;
+import com.mlibrary.multiapk.base.hack.SysHacks;
+import com.mlibrary.multiapk.base.util.LogUtil;
+import com.mlibrary.multiapk.MultiApk;
 
 import java.util.List;
 
@@ -144,7 +144,7 @@ public class InstrumentationHook extends Instrumentation {
             }
         } catch (ClassNotFoundException e) {
             //String property = Framework.getProperty("ctrip.android.bundle.welcome", "ctrip.android.view.home.CtripSplashActivity");
-            if (TextUtils.isEmpty(MDynamicLib.defaultActivityWhileClassNotFound)) {
+            if (TextUtils.isEmpty(MultiApk.defaultActivityWhileClassNotFound)) {
                 throw e;
             } else {
                 List runningTasks = ((ActivityManager) this.context.getSystemService(Context.ACTIVITY_SERVICE)).getRunningTasks(1);
@@ -154,8 +154,8 @@ public class InstrumentationHook extends Instrumentation {
                     }
                 }
                 LogUtil.w(TAG, "Could not find activity class: " + str);
-                LogUtil.w(TAG, "Redirect to welcome activity: " + MDynamicLib.defaultActivityWhileClassNotFound);
-                newActivity = this.instrumentation.newActivity(classLoader, MDynamicLib.defaultActivityWhileClassNotFound, intent);
+                LogUtil.w(TAG, "Redirect to welcome activity: " + MultiApk.defaultActivityWhileClassNotFound);
+                newActivity = this.instrumentation.newActivity(classLoader, MultiApk.defaultActivityWhileClassNotFound, intent);
             }
         }
         return newActivity;

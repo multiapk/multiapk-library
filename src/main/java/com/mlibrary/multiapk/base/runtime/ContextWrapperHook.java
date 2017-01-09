@@ -1,11 +1,11 @@
-package com.mlibrary.patch.base.runtime;
+package com.mlibrary.multiapk.base.runtime;
 
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
 
-import com.mlibrary.patch.base.util.LogUtil;
+import com.mlibrary.multiapk.base.util.LogUtil;
 
 
 /**

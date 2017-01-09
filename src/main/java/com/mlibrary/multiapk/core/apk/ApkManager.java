@@ -1,16 +1,19 @@
-package com.mlibrary.patch.bundle;
+package com.mlibrary.multiapk.core.apk;
 
 import android.app.Application;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.text.TextUtils;
 
-import com.mlibrary.patch.MDynamicLib;
-import com.mlibrary.patch.base.hack.AndroidHack;
-import com.mlibrary.patch.base.hack.SysHacks;
-import com.mlibrary.patch.base.runtime.InstrumentationHook;
-import com.mlibrary.patch.base.runtime.ResourcesHook;
-import com.mlibrary.patch.base.runtime.RuntimeArgs;
-import com.mlibrary.patch.base.util.FileUtil;
-import com.mlibrary.patch.base.util.LogUtil;
+import com.mlibrary.multiapk.MultiApk;
+import com.mlibrary.multiapk.base.hack.AndroidHack;
+import com.mlibrary.multiapk.base.hack.SysHacks;
+import com.mlibrary.multiapk.base.runtime.InstrumentationHook;
+import com.mlibrary.multiapk.base.runtime.ResourcesHook;
+import com.mlibrary.multiapk.base.runtime.RuntimeArgs;
+import com.mlibrary.multiapk.base.util.FileUtil;
+import com.mlibrary.multiapk.base.util.LogUtil;
+import com.mlibrary.multiapk.base.util.PreferencesUtil;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -22,16 +25,16 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-public enum BundleManager {
+public enum ApkManager {
     instance;
 
-    private static final String TAG = BundleManager.class.getName();
+    private static final String TAG = ApkManager.class.getName();
     public static final String bundleLibPath = "assets/baseres/";
     public static final String suffix_bundle_in_local = ".zip";//if (name.endsWith(APK_SUFFIX) || name.endsWith(JAR_SUFFIX) || name.endsWith(ZIP_SUFFIX))
     public static final String suffix_bundle_in_assets = ".so";
     public static final String suffix_dex = ".dex";
 
-    private final Map<String, Bundle> bundles = new ConcurrentHashMap<>();
+    private final Map<String, ApkEntity> bundles = new ConcurrentHashMap<>();
     private File bundlesDir;
 
     public void init(Application application, boolean isOpenLog) {
@@ -46,7 +49,7 @@ public enum BundleManager {
             RuntimeArgs.delegateResources = application.getResources();
             AndroidHack.injectInstrumentationHook(new InstrumentationHook(AndroidHack.getInstrumentation(), application.getBaseContext()));
 
-            bundlesDir = new File(MDynamicLib.getBaseDir(application), "bundles");
+            bundlesDir = new File(MultiApk.getBaseDir(application), "bundles");
             LogUtil.w(TAG, "bundle location:" + bundlesDir);
 
             checkStatus(application);
@@ -64,7 +67,7 @@ public enum BundleManager {
         LogUtil.e(TAG, ">>>>-------------------------------------------------------------->>>>");
         final long startTime = System.currentTimeMillis();
         boolean isLocalBundlesValid = isLocalBundlesValid();
-        if (!TextUtils.equals(MDynamicLib.getCurrentBundleKey(application), MDynamicLib.getLastBundleKey(application)) || !isLocalBundlesValid) {
+        if (!TextUtils.equals(getCurrentBundleKey(application), getLastBundleKey(application)) || !isLocalBundlesValid) {
             LogUtil.d(TAG, "checkStatus: currentBundleKey != lastBundleKey , delete local and reCopyInstall bundles, isLocalBundlesValid==" + isLocalBundlesValid);
             new Thread(new Runnable() {
                 @Override
@@ -93,9 +96,9 @@ public enum BundleManager {
     }
 
     public void deleteBundleIfExists(String packageName) throws Exception {
-        Bundle bundle = bundles.get(packageName);
-        if (bundle != null)
-            bundle.delete();
+        ApkEntity apkEntity = bundles.get(packageName);
+        if (apkEntity != null)
+            apkEntity.delete();
     }
 
     public void deleteAllBundlesIfExists() {
@@ -110,17 +113,17 @@ public enum BundleManager {
     public void installBundleDexs() {
         LogUtil.w(TAG, "installBundleDexs：start");
         long startTime = System.currentTimeMillis();
-        for (Bundle bundle : getBundles()) {
+        for (ApkEntity apkEntity : getBundles()) {
             try {
-                bundle.installBundleDex();
+                apkEntity.installBundleDex();
             } catch (Exception e) {
                 LogUtil.e(TAG, "installBundleDex exception", e);
             }
         }
         try {
             List<String> assetsPathList = new ArrayList<>();
-            for (Bundle bundle : getBundles())
-                assetsPathList.add((bundle).getBundleFilePath());
+            for (ApkEntity apkEntity : getBundles())
+                assetsPathList.add((apkEntity).getBundleFilePath());
             ResourcesHook.newResourcesHook(RuntimeArgs.androidApplication, RuntimeArgs.delegateResources, assetsPathList);
         } catch (Exception e) {
             LogUtil.e(TAG, "DelegateResources.newResourcesHook exception", e);
@@ -155,18 +158,18 @@ public enum BundleManager {
                 LogUtil.d(TAG, "bundleBasePath:" + bundleBasePath + ", packageName:" + packageName);
                 if (!isLocalBundleExists(packageName)) {
                     try {
-                        Bundle bundle = bundles.get(packageName);
-                        if (bundle == null) {
+                        ApkEntity apkEntity = bundles.get(packageName);
+                        if (apkEntity == null) {
                             //临时修改本地存储路径名 //todo
-                            bundle = new Bundle(new File(bundlesDir, packageName), packageName, zipFile.getInputStream(zipFile.getEntry(bundleBasePath)));
-                            bundles.put(bundle.getPackageName(), bundle);
+                            apkEntity = new ApkEntity(new File(bundlesDir, packageName), packageName, zipFile.getInputStream(zipFile.getEntry(bundleBasePath)));
+                            bundles.put(apkEntity.getPackageName(), apkEntity);
                         }
                     } catch (Exception e) {
                         LogUtil.e(TAG, "new Bundle failure: " + packageName, e);
                     }
                 }
             }
-            MDynamicLib.saveBundleKey(application, MDynamicLib.getCurrentBundleKey(application));
+            saveBundleKey(application, getCurrentBundleKey(application));
         } catch (Exception e) {
             LogUtil.e(TAG, "open zip sourceDir error! " + application.getApplicationInfo().sourceDir, e);
         } finally {
@@ -185,8 +188,8 @@ public enum BundleManager {
         return isLocalBundleExists;
     }
 
-    public List<Bundle> getBundles() {
-        List<Bundle> arrayList = new ArrayList<>(bundles.size());
+    public List<ApkEntity> getBundles() {
+        List<ApkEntity> arrayList = new ArrayList<>(bundles.size());
         synchronized (bundles) {
             arrayList.addAll(bundles.values());
         }
@@ -200,9 +203,9 @@ public enum BundleManager {
             if (bundleDirs != null) {
                 for (File bundleDir : bundleDirs) {
                     try {
-                        Bundle bundle = new Bundle(bundleDir);
-                        bundles.put(bundle.getPackageName(), bundle);
-                        LogUtil.v(TAG, "success to load bundle: " + bundle.getBundleFilePath());
+                        ApkEntity apkEntity = new ApkEntity(bundleDir);
+                        bundles.put(apkEntity.getPackageName(), apkEntity);
+                        LogUtil.v(TAG, "success to load bundle: " + apkEntity.getBundleFilePath());
                     } catch (Exception e) {
                         LogUtil.e(TAG, "failure to load bundle: " + bundleDir, e);
                     }
@@ -216,9 +219,29 @@ public enum BundleManager {
         }
     }
 
-    public File getBundlesDir() {
-        return bundlesDir;
+    public static String getCurrentBundleKey(Application application) {
+        String bundleKey = null;
+        try {
+            PackageInfo packageInfo = application.getPackageManager().getPackageInfo(application.getPackageName(), PackageManager.GET_CONFIGURATIONS);
+            bundleKey = "app.version." + String.valueOf(packageInfo.versionCode) + "." + packageInfo.versionName;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        LogUtil.w(TAG, "[get] currentBundleKey==" + bundleKey);
+        return bundleKey;
     }
 
+    private static final String KEY_LAST_BUNDLE = "KEY_LAST_BUNDLE_KEY";
+
+    public static void saveBundleKey(Application application, String bundleKey) {
+        LogUtil.w(TAG, "saveBundleKey:" + bundleKey);
+        PreferencesUtil.getInstance(application).putString(KEY_LAST_BUNDLE, bundleKey);
+    }
+
+    public static String getLastBundleKey(Application application) {
+        String lastBundleKey = PreferencesUtil.getInstance(application).getString(KEY_LAST_BUNDLE);
+        LogUtil.w(TAG, "[get] lastBundleKey==" + lastBundleKey);
+        return lastBundleKey;
+    }
 
 }

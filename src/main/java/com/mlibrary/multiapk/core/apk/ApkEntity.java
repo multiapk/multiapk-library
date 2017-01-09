@@ -1,12 +1,12 @@
-package com.mlibrary.patch.bundle;
+package com.mlibrary.multiapk.core.apk;
 
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.mlibrary.patch.base.runtime.RuntimeArgs;
-import com.mlibrary.patch.base.util.FileUtil;
-import com.mlibrary.patch.base.util.LogUtil;
-import com.mlibrary.patch.hotpatch.Hotpatch;
+import com.mlibrary.multiapk.base.runtime.RuntimeArgs;
+import com.mlibrary.multiapk.base.util.FileUtil;
+import com.mlibrary.multiapk.base.util.LogUtil;
+import com.mlibrary.multiapk.core.hotpatch.Hotpatch;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -16,15 +16,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-public class Bundle {
-    private static final String TAG = Bundle.class.getName();
+public class ApkEntity {
+    private static final String TAG = ApkEntity.class.getName();
     private volatile boolean isBundleDexInstalled = false;
-    public static final String SUFFIX = BundleManager.suffix_bundle_in_assets;
+    public static final String SUFFIX = ApkManager.suffix_bundle_in_assets;
     private File bundleFile = null;
     private File bundleDir = null;
     private String packageName = null;
 
-    public Bundle(File bundleDir) throws Exception {
+    public ApkEntity(File bundleDir) throws Exception {
         this.bundleDir = bundleDir;
         if (bundleDir.exists()) {
             File[] localFiles = bundleDir.listFiles(new FilenameFilter() {
@@ -43,7 +43,7 @@ public class Bundle {
         Log.w(TAG, "bundleFilePath:" + bundleFile.getPath() + ", bundleFileName:" + bundleFile.getName() + ", packageName:" + packageName);
     }
 
-    public Bundle(File bundleDir, String packageName, InputStream inputStream) throws Exception {
+    public ApkEntity(File bundleDir, String packageName, InputStream inputStream) throws Exception {
         if (bundleDir == null || TextUtils.isEmpty(packageName) || inputStream == null)
             throw new IllegalArgumentException("bundleDir:" + bundleDir + ", packageName:" + packageName + ", inputStream==null?" + (inputStream == null));
 
@@ -80,7 +80,7 @@ public class Bundle {
 
             List<File> bundleList = new ArrayList<>();
             bundleList.add(this.bundleFile);
-            BundleDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), bundleList, bundleDir, false);
+            ApkDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), bundleList, bundleDir, false);
             isBundleDexInstalled = true;
         }
         LogUtil.v(TAG, "installBundleDex：" + getPackageName() + ", 耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");

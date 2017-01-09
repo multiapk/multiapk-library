@@ -1,4 +1,4 @@
-package com.mlibrary.patch.base.hack;
+package com.mlibrary.multiapk.base.hack;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

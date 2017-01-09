@@ -3,7 +3,7 @@
 // (powered by Fernflower decompiler)
 //
 
-package com.mlibrary.patch.base.util;
+package com.mlibrary.multiapk.base.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;

@@ -1,4 +1,4 @@
-package com.mlibrary.patch.base.util;
+package com.mlibrary.multiapk.base.util;
 
 
 import java.io.File;
@@ -38,29 +38,18 @@ public class FileUtil {
      */
 
     public static void fileChannelCopy(File sourceFile, File destFile) throws IOException {
-        FileInputStream fileInputStream = null;
-        FileOutputStream fileOutputStream = null;
-        FileChannel fileChannelIn = null;
-        FileChannel fileChannelOut = null;
+        FileInputStream fileInputStream = new FileInputStream(sourceFile);
+        FileOutputStream fileOutputStream = new FileOutputStream(destFile);
+        FileChannel fileChannelIn = fileInputStream.getChannel();// 得到对应的文件通道
+        FileChannel fileChannelOut = fileOutputStream.getChannel();// 得到对应的文件通道
+        fileChannelIn.transferTo(0, fileChannelIn.size(), fileChannelOut);// 连接两个通道，并且从in通道读取，然后写入out通道
         try {
-            fileInputStream = new FileInputStream(sourceFile);
-            fileOutputStream = new FileOutputStream(destFile);
-            fileChannelIn = fileInputStream.getChannel();// 得到对应的文件通道
-            fileChannelOut = fileOutputStream.getChannel();// 得到对应的文件通道
-            fileChannelIn.transferTo(0, fileChannelIn.size(), fileChannelOut);// 连接两个通道，并且从in通道读取，然后写入out通道
-        } finally {
-            try {
-                if (fileInputStream != null)
-                    fileInputStream.close();
-                if (fileChannelIn != null)
-                    fileChannelIn.close();
-                if (fileOutputStream != null)
-                    fileOutputStream.close();
-                if (fileChannelOut != null)
-                    fileChannelOut.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            fileInputStream.close();
+            fileChannelIn.close();
+            fileOutputStream.close();
+            fileChannelOut.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
