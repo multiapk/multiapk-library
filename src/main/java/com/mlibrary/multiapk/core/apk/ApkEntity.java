@@ -1,7 +1,6 @@
 package com.mlibrary.multiapk.core.apk;
 
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.mlibrary.multiapk.base.runtime.RuntimeArgs;
 import com.mlibrary.multiapk.base.util.FileUtil;
@@ -40,7 +39,7 @@ public class ApkEntity {
         }
         if (bundleFile == null || !bundleFile.exists())
             throw new IllegalStateException("local bundle not exists! " + bundleDir);
-        Log.w(TAG, "bundleFilePath:" + bundleFile.getPath() + ", bundleFileName:" + bundleFile.getName() + ", packageName:" + packageName);
+        LogUtil.w(TAG, "bundleFilePath:" + bundleFile.getPath() + ", bundleFileName:" + bundleFile.getName() + ", packageName:" + packageName);
     }
 
     public ApkEntity(File bundleDir, String packageName, InputStream inputStream) throws Exception {
@@ -59,7 +58,7 @@ public class ApkEntity {
             FileUtil.deleteDirectory(bundleDir);
             throw new IOException("can not install bundle " + packageName, e);
         }
-        Log.w(TAG, "bundleFilePath:" + bundleFile.getPath() + ", bundleFileName:" + bundleFile.getName() + ", packageName:" + packageName);
+        LogUtil.w(TAG, "bundleFilePath:" + bundleFile.getPath() + ", bundleFileName:" + bundleFile.getName() + ", packageName:" + packageName);
     }
 
     public void installBundleDex() throws Exception {
@@ -71,12 +70,12 @@ public class ApkEntity {
             if (syntheticBundleFile != null && syntheticBundleFile.exists()) {
                 this.bundleDir = syntheticBundleFile.getParentFile();
                 this.bundleFile = syntheticBundleFile;
-                Log.w(TAG, "发现合成包:" + bundleFile.getPath());
+                LogUtil.w(TAG, "发现合成包:" + bundleFile.getPath());
             }
 
-            Log.w(TAG, "bundleDir:" + bundleDir.getPath());
-            Log.w(TAG, "bundleFile:" + bundleFile.getPath());
-            Log.w(TAG, "isHotFix:" + false);
+            LogUtil.w(TAG, "bundleDir:" + bundleDir.getPath());
+            LogUtil.w(TAG, "bundleFile:" + bundleFile.getPath());
+            LogUtil.w(TAG, "isHotFix:" + false);
 
             List<File> bundleList = new ArrayList<>();
             bundleList.add(this.bundleFile);

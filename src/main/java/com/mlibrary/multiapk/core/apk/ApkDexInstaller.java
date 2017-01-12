@@ -1,7 +1,8 @@
 package com.mlibrary.multiapk.core.apk;
 
 import android.os.Build;
-import android.util.Log;
+
+import com.mlibrary.multiapk.base.util.LogUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -142,7 +143,7 @@ public class ApkDexInstaller {
             expandFieldArray(dexPathList, "dexElements", makeDexElements(dexPathList, new ArrayList<>(additionalClassPathEntries), optimizedDirectory, suppressedExceptions), isHotFix);
             if (suppressedExceptions.size() > 0) {
                 for (IOException e : suppressedExceptions)
-                    Log.w("BundlePathLoader", "Exception in makeDexElement", e);
+                    LogUtil.w("BundlePathLoader", "Exception in makeDexElement", e);
                 throw suppressedExceptions.get(0);
             }
         }
