@@ -1,8 +1,7 @@
 package com.mlibrary.multiapk.core.apk;
 
 import android.os.Build;
-
-import com.mlibrary.multiapk.base.util.LogUtil;
+import android.util.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,29 +19,26 @@ import java.util.zip.ZipFile;
 import dalvik.system.DexFile;
 
 public class ApkDexInstaller {
+    public static final String TAG = "ApkDexInstaller";
+
     private ApkDexInstaller() {
     }
 
-    public static void installBundleDex(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException, InvocationTargetException, NoSuchMethodException, IOException {
-        if (!additionalClassPathEntries.isEmpty()) {
+    public static void installBundleDexs(ClassLoader loader, File dexDir, List<File> files, boolean isHotFix)
+            throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InstantiationException,
+            InvocationTargetException, NoSuchMethodException, IOException {
+        if (!files.isEmpty()) {
             if (Build.VERSION.SDK_INT >= 23) {
-                V23.install(loader, additionalClassPathEntries, optimizedDirectory, isHotFix);
+                V23.install(loader, files, dexDir, isHotFix);
             } else if (Build.VERSION.SDK_INT >= 19) {
-                V19.install(loader, additionalClassPathEntries, optimizedDirectory, isHotFix);
+                V19.install(loader, files, dexDir, isHotFix);
             } else if (Build.VERSION.SDK_INT >= 14) {
-                V14.install(loader, additionalClassPathEntries, optimizedDirectory, isHotFix);
+                V14.install(loader, files, dexDir, isHotFix);
             } else {
-                V4.install(loader, additionalClassPathEntries, isHotFix);
+                V4.install(loader, files, isHotFix);
             }
         }
     }
-
-    /*private static boolean checkValidZipFiles(List<File> files) {
-        for (File file : files)
-            if (!MultiDexExtractor.verifyZipFile(file))
-                return false;
-        return true;
-    }*/
 
     /**
      * Locates a given field anywhere in the class inheritance hierarchy.
@@ -56,12 +52,17 @@ public class ApkDexInstaller {
         for (Class<?> clazz = instance.getClass(); clazz != null; clazz = clazz.getSuperclass()) {
             try {
                 Field field = clazz.getDeclaredField(name);
-                if (!field.isAccessible())
+
+                if (!field.isAccessible()) {
                     field.setAccessible(true);
+                }
+
                 return field;
-            } catch (NoSuchFieldException ignore) {
+            } catch (NoSuchFieldException e) {
+                e.printStackTrace();
             }
         }
+
         throw new NoSuchFieldException("Field " + name + " not found in " + instance.getClass());
     }
 
@@ -74,17 +75,26 @@ public class ApkDexInstaller {
      * @return a method object
      * @throws NoSuchMethodException if the method cannot be located
      */
-    private static Method findMethod(Object instance, String name, Class<?>... parameterTypes) throws NoSuchMethodException {
+    private static Method findMethod(Object instance, String name, Class<?>... parameterTypes)
+            throws NoSuchMethodException {
         for (Class<?> clazz = instance.getClass(); clazz != null; clazz = clazz.getSuperclass()) {
             try {
+
                 Method method = clazz.getDeclaredMethod(name, parameterTypes);
-                if (!method.isAccessible())
+
+
+                if (!method.isAccessible()) {
                     method.setAccessible(true);
+                }
+
                 return method;
-            } catch (NoSuchMethodException ignore) {
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
             }
         }
-        throw new NoSuchMethodException("Method " + name + " with parameters " + Arrays.asList(parameterTypes) + " not found in " + instance.getClass());
+
+        throw new NoSuchMethodException("Method " + name + " with parameters " +
+                Arrays.asList(parameterTypes) + " not found in " + instance.getClass());
     }
 
     /**
@@ -95,11 +105,14 @@ public class ApkDexInstaller {
      * @param fieldName     the field to modify.
      * @param extraElements elements to append at the end of the array.
      */
-    private static void expandFieldArray(Object instance, String fieldName, Object[] extraElements, boolean isHotFix) throws NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
+    private static void expandFieldArray(Object instance, String fieldName,
+                                         Object[] extraElements, boolean isHotFix) throws NoSuchFieldException, IllegalArgumentException,
+            IllegalAccessException {
         synchronized (ApkDexInstaller.class) {
             Field jlrField = findField(instance, fieldName);
             Object[] original = (Object[]) jlrField.get(instance);
-            Object[] combined = (Object[]) Array.newInstance(original.getClass().getComponentType(), original.length + extraElements.length);
+            Object[] combined = (Object[]) Array.newInstance(
+                    original.getClass().getComponentType(), original.length + extraElements.length);
             if (isHotFix) {
                 System.arraycopy(extraElements, 0, combined, 0, extraElements.length);
                 System.arraycopy(original, 0, combined, extraElements.length, original.length);
@@ -111,27 +124,38 @@ public class ApkDexInstaller {
         }
     }
 
+
     private static final class V23 {
-        private static void install(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+
+        private static void install(ClassLoader loader, List<File> additionalClassPathEntries,
+                                    File optimizedDirectory, boolean isHotFix)
+                throws IllegalArgumentException, IllegalAccessException,
+                NoSuchFieldException, InvocationTargetException, NoSuchMethodException, InstantiationException {
+
             Field pathListField = findField(loader, "pathList");
             Object dexPathList = pathListField.get(loader);
+            Field dexElement = findField(dexPathList, "dexElements");
+            Class<?> elementType = dexElement.getType().getComponentType();
             Method loadDex = findMethod(dexPathList, "loadDexFile", File.class, File.class);
             Object dex = loadDex.invoke(dexPathList, additionalClassPathEntries.get(0), optimizedDirectory);
-
-            //make a {@see https://android.googlesource.com/platform/libcore-snapshot/+/ics-mr1/dalvik/src/main/java/dalvik/system/DexPathList.java$Element}
-            Field dexElement = findField(dexPathList, "dexElements");//private final Element[] dexElements;/** list of dex/resource (class path) elements */
-            Class<?> elementType = dexElement.getType().getComponentType();//the {@code Class} representing the component type of this * class if this class is an array
-            Constructor<?> constructor = elementType.getConstructor(File.class, boolean.class, File.class, DexFile.class);//public Element(File file, ZipFile zipFile, DexFile dexFile){}
-            Object element = constructor.newInstance(new File(""), false, additionalClassPathEntries.get(0), dex);//got a Element instance with suffix is "*.so"
-
-            Object[] newElement = new Object[1];
-            newElement[0] = element;
-            expandFieldArray(dexPathList, "dexElements", newElement, isHotFix);
+            Constructor<?> constructor = elementType.getConstructor(File.class, boolean.class, File.class, DexFile.class);
+            Object element = constructor.newInstance(new File(""), false, additionalClassPathEntries.get(0), dex);
+            Object[] newEles = new Object[1];
+            newEles[0] = element;
+            expandFieldArray(dexPathList, "dexElements", newEles, isHotFix);
         }
+
     }
 
+    /**
+     * Installer for platform versions 19.
+     */
     private static final class V19 {
-        private static void install(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InvocationTargetException, NoSuchMethodException, IOException {
+
+        private static void install(ClassLoader loader, List<File> additionalClassPathEntries,
+                                    File optimizedDirectory, boolean isHotFix)
+                throws IllegalArgumentException, IllegalAccessException,
+                NoSuchFieldException, InvocationTargetException, NoSuchMethodException, IOException {
             /* The patched class loader is expected to be a descendant of
              * dalvik.system.BaseDexClassLoader. We modify its
              * dalvik.system.DexPathList pathList field to append additional DEX
@@ -139,11 +163,15 @@ public class ApkDexInstaller {
              */
             Field pathListField = findField(loader, "pathList");
             Object dexPathList = pathListField.get(loader);
-            ArrayList<IOException> suppressedExceptions = new ArrayList<>();
-            expandFieldArray(dexPathList, "dexElements", makeDexElements(dexPathList, new ArrayList<>(additionalClassPathEntries), optimizedDirectory, suppressedExceptions), isHotFix);
+            ArrayList<IOException> suppressedExceptions = new ArrayList<IOException>();
+            expandFieldArray(dexPathList, "dexElements", makeDexElements(dexPathList,
+                    new ArrayList<File>(additionalClassPathEntries), optimizedDirectory,
+                    suppressedExceptions), isHotFix);
             if (suppressedExceptions.size() > 0) {
-                for (IOException e : suppressedExceptions)
-                    LogUtil.w("BundlePathLoader", "Exception in makeDexElement", e);
+                for (IOException e : suppressedExceptions) {
+                    Log.w(TAG, "Exception in makeDexElement", e);
+
+                }
                 throw suppressedExceptions.get(0);
             }
         }
@@ -152,9 +180,17 @@ public class ApkDexInstaller {
          * A wrapper around
          * {@code private static final dalvik.system.DexPathList#makeDexElements}.
          */
-        private static Object[] makeDexElements(Object dexPathList, ArrayList<File> files, File optimizedDirectory, ArrayList<IOException> suppressedExceptions) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-            Method makeDexElements = findMethod(dexPathList, "makeDexElements", ArrayList.class, File.class, ArrayList.class);
-            return (Object[]) makeDexElements.invoke(dexPathList, files, optimizedDirectory, suppressedExceptions);
+        private static Object[] makeDexElements(
+                Object dexPathList, ArrayList<File> files, File optimizedDirectory,
+                ArrayList<IOException> suppressedExceptions)
+                throws IllegalAccessException, InvocationTargetException,
+                NoSuchMethodException {
+            Method makeDexElements =
+                    findMethod(dexPathList, "makeDexElements", ArrayList.class, File.class,
+                            ArrayList.class);
+
+            return (Object[]) makeDexElements.invoke(dexPathList, files, optimizedDirectory,
+                    suppressedExceptions);
         }
     }
 
@@ -163,7 +199,10 @@ public class ApkDexInstaller {
      */
     private static final class V14 {
 
-        private static void install(ClassLoader loader, List<File> additionalClassPathEntries, File optimizedDirectory, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, InvocationTargetException, NoSuchMethodException {
+        private static void install(ClassLoader loader, List<File> additionalClassPathEntries,
+                                    File optimizedDirectory, boolean isHotFix)
+                throws IllegalArgumentException, IllegalAccessException,
+                NoSuchFieldException, InvocationTargetException, NoSuchMethodException {
             /* The patched class loader is expected to be a descendant of
              * dalvik.system.BaseDexClassLoader. We modify its
              * dalvik.system.DexPathList pathList field to append additional DEX
@@ -171,15 +210,21 @@ public class ApkDexInstaller {
              */
             Field pathListField = findField(loader, "pathList");
             Object dexPathList = pathListField.get(loader);
-            expandFieldArray(dexPathList, "dexElements", makeDexElements(dexPathList, new ArrayList<>(additionalClassPathEntries), optimizedDirectory), isHotFix);
+            expandFieldArray(dexPathList, "dexElements", makeDexElements(dexPathList,
+                    new ArrayList<File>(additionalClassPathEntries), optimizedDirectory), isHotFix);
         }
 
         /**
          * A wrapper around
          * {@code private static final dalvik.system.DexPathList#makeDexElements}.
          */
-        private static Object[] makeDexElements(Object dexPathList, ArrayList<File> files, File optimizedDirectory) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
-            Method makeDexElements = findMethod(dexPathList, "makeDexElements", ArrayList.class, File.class);
+        private static Object[] makeDexElements(
+                Object dexPathList, ArrayList<File> files, File optimizedDirectory)
+                throws IllegalAccessException, InvocationTargetException,
+                NoSuchMethodException {
+            Method makeDexElements =
+                    findMethod(dexPathList, "makeDexElements", ArrayList.class, File.class);
+
             return (Object[]) makeDexElements.invoke(dexPathList, files, optimizedDirectory);
         }
     }
@@ -188,14 +233,18 @@ public class ApkDexInstaller {
      * Installer for platform versions 4 to 13.
      */
     private static final class V4 {
-        private static void install(ClassLoader loader, List<File> additionalClassPathEntries, boolean isHotFix) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, IOException {
+        private static void install(ClassLoader loader, List<File> additionalClassPathEntries, boolean isHotFix)
+                throws IllegalArgumentException, IllegalAccessException,
+                NoSuchFieldException, IOException {
             /* The patched class loader is expected to be a descendant of
              * dalvik.system.DexClassLoader. We modify its
              * fields mPaths, mFiles, mZips and mDexs to append additional DEX
              * file entries.
              */
             int extraSize = additionalClassPathEntries.size();
+
             Field pathField = findField(loader, "path");
+
             StringBuilder path = new StringBuilder((String) pathField.get(loader));
             String[] extraPaths = new String[extraSize];
             File[] extraFiles = new File[extraSize];

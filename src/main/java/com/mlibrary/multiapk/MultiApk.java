@@ -19,11 +19,12 @@ public class MultiApk {
     }
 
     public static File getBaseDir(Application androidApplication) {
-        String baseDir = androidApplication.getFilesDir().getAbsolutePath();
+//        String baseDir = androidApplication.getFilesDir().getAbsolutePath();
         //为了方便调试，暂时优先放到SDCard
-//        File baseDir = androidApplication.getExternalFilesDir(null);
-//        if (baseDir == null)
-//            baseDir = androidApplication.getFilesDir();
-        return new File(baseDir);
+        File baseDir = androidApplication.getExternalFilesDir(null);
+        if (baseDir == null)
+            baseDir = androidApplication.getFilesDir();
+        return baseDir;
+//        return new File(baseDir);
     }
 }

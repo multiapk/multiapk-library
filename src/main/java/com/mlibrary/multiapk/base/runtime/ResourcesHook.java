@@ -11,6 +11,7 @@ import com.mlibrary.multiapk.base.hack.SysHacks;
 import com.mlibrary.multiapk.base.util.LogUtil;
 
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -26,6 +27,8 @@ public class ResourcesHook extends Resources {
     }
 
     public static void newResourcesHook(Application application, Resources resources, List<String> assetPathList) throws Exception {
+        LogUtil.d(TAG, "...............................");
+        LogUtil.d(TAG, "assetPathList:" + (assetPathList == null ? "null" : Arrays.toString(assetPathList.toArray())));
         if (assetPathList != null && !assetPathList.isEmpty()) {
             Resources delegateResources;
             assetPathList.add(0, application.getApplicationInfo().sourceDir);
@@ -45,17 +48,7 @@ public class ResourcesHook extends Resources {
 
             RuntimeArgs.delegateResources = delegateResources;
             AndroidHack.injectResources(application, delegateResources);
-
-            //just for log
-            StringBuilder logBuffer = new StringBuilder();
-            logBuffer.append("newResourcesHook:addAssetPath [\n");
-            for (int i = 0; i < assetPathList.size(); i++) {
-                if (i > 0)
-                    logBuffer.append(",\n");
-                logBuffer.append(assetPathList.get(i));
-            }
-            logBuffer.append("\n]");
-            LogUtil.d(TAG, logBuffer.toString());
         }
+        LogUtil.d(TAG, "...............................");
     }
 }

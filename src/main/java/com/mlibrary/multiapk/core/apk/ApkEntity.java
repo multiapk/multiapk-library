@@ -12,13 +12,14 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class ApkEntity {
     private static final String TAG = ApkEntity.class.getName();
     private volatile boolean isBundleDexInstalled = false;
-    public static final String SUFFIX = ApkManager.suffix_bundle_in_assets;
+    public static final String SUFFIX = ApkManager.suffix_bundle_in_local;
     private File bundleFile = null;
     private File bundleDir = null;
     private String packageName = null;
@@ -73,13 +74,16 @@ public class ApkEntity {
                 LogUtil.w(TAG, "发现合成包:" + bundleFile.getPath());
             }
 
+            LogUtil.w(TAG, "classloader:" + RuntimeArgs.androidApplication.getClassLoader().toString());
             LogUtil.w(TAG, "bundleDir:" + bundleDir.getPath());
             LogUtil.w(TAG, "bundleFile:" + bundleFile.getPath());
             LogUtil.w(TAG, "isHotFix:" + false);
 
             List<File> bundleList = new ArrayList<>();
             bundleList.add(this.bundleFile);
-            ApkDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), bundleList, bundleDir, false);
+            LogUtil.w(TAG, "bundleList:" + Arrays.toString(bundleList.toArray()));
+            ApkDexInstaller.installBundleDexs(RuntimeArgs.androidApplication.getClassLoader(), bundleDir, bundleList, false);
+            //ApkDexInstaller.installBundleDex(RuntimeArgs.androidApplication.getClassLoader(), bundleList, bundleDir, false);
             isBundleDexInstalled = true;
         }
         LogUtil.v(TAG, "installBundleDex：" + getPackageName() + ", 耗时: " + String.valueOf(System.currentTimeMillis() - startTime) + "ms");
