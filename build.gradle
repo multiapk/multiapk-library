@@ -43,8 +43,8 @@ publish {
     artifactId = "multiapk-library" //compile 'com.mlibrary:mpulllib:0.1'
     publishVersion = "0.0.1"  //compile 'com.mlibrary:mpulllib:0.1'
     userOrg = "krmao"           //krmao/maven/MPullLib
-    uploadName = "multiapk"     //krmao/maven/MPullLib
-    desc = "apply to multiapk.plugin https://github.com/multiapk/multiapk.plugin"
-    website = "https://github.com/multiapk/multiapk.library"
+    uploadName = "multiapk-library"     //krmao/maven/MPullLib
+    desc = "apply to multiapk.plugin https://github.com/multiapk/multiapk-plugin"
+    website = "https://github.com/multiapk/multiapk-library"
     licences = ["Apache-2.0"]
 }
