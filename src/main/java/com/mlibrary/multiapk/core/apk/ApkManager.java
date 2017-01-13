@@ -31,7 +31,7 @@ public enum ApkManager {
     private static final String TAG = ApkManager.class.getName();
     public static final String bundleLibPath = "assets/baseres/";
     public static final String suffix_bundle_in_local = ".zip";//if (name.endsWith(APK_SUFFIX) || name.endsWith(JAR_SUFFIX) || name.endsWith(ZIP_SUFFIX))
-    public static final String suffix_bundle_in_assets = ".so";
+    public static final String suffix_bundle_in_assets = ".zip";
     public static final String suffix_dex = ".dex";
 
     private final Map<String, ApkEntity> bundles = new ConcurrentHashMap<>();
